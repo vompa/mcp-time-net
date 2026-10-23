@@ -24,7 +24,7 @@ Implement slice 02 "Zeitzonen & aktuelle Zeit" (this file).
 
 ## Definition of Done
 - [ ] Acceptance criteria green as tests
-- [ ] Parity cases green: B-NOW-1..15, B-ERR-1..5, I-RES-1, I-ERR-3
+- [ ] Parity cases green: B-NOW-1..15, B-ERR-1..5, I-RES-1, I-ERR-3, I-ERR-4 (isError false)
 - [ ] Build without warnings, architecture tests green
 - [ ] No file > 300 lines, no new packages without approval
 - [ ] No dead code, no TODOs without an issue

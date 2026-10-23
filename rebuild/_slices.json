@@ -13,7 +13,7 @@
    "goal":"get_current_time liefert für jede gültige IANA-Zone die richtige Zeit, lehnt alles andere klar ab.",
    "prd":"F2","deps":"01",
    "scope":["TimeZoneName: exakte IANA-Schlüssel, gleich streng auf allen Plattformen, Pfade abgelehnt","TimeResult: ISO 8601 mit Offset, englischer Wochentag, Sommerzeit-Flag","Ergebnisform: structuredContent plus JSON-Textblock","Fachfehler als isError mit klarer Information"],
-   "parity":"B-NOW-1..15, B-ERR-1..5, I-RES-1, I-ERR-3","non_goals":"Umrechnung, CLI"},
+   "parity":"B-NOW-1..15, B-ERR-1..5, I-RES-1, I-ERR-3, I-ERR-4 (isError false)","non_goals":"Umrechnung, CLI"},
   {"nr":"03","slug":"convert-time","name":"Umrechnung",
    "goal":"convert_time rechnet Ortszeiten korrekt über Sommerzeit, Viertelstunden-Offsets und Datumsgrenzen um – mit optionalem Datum.",
    "prd":"F3, Verbesserungen","deps":"02",

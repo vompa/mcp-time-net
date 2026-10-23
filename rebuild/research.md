@@ -210,7 +210,7 @@ Quelle: Quellcode `modelcontextprotocol/csharp-sdk`, `main` @ 8b00f20 (23.10.202
 (Stand nach DEEP)
 - Release Notes 2.3.0 im Wortlaut (GitHub-API in dieser Sitzung gesperrt; Verhalten stattdessen aus Quellcode `main` mit `VersionPrefix 2.3.0` abgeleitet – Tag-Stand nicht verglichen).
 - Exaktes JSON-Schema, das `AIJsonUtilities.CreateJsonSchema` für einen Record mit nullable Properties/`[Description]` erzeugt (Vergleich zum pydantic-`outputSchema` des Originals) – empirisch mit SDK prüfen.
-- Verhalten bei fehlenden/falsch typisierten Argumenten (Binding-Fehler: `isError` vs. -32602) im SDK 2.3.
+- Verhalten bei fehlenden/falsch typisierten Argumenten (Binding-Fehler: `isError` vs. -32602) im SDK 2.3. – durch eigene `McpServerTool`-Klassen gegenstandslos: die Tools erhalten die Argumente roh und prüfen selbst (D10).
 - NodaTime: Case-Sensitivity von `Tzdb.GetZoneOrNull` und ob `Tzdb.Ids` Aliase enthält; API der `TimeProvider`-Extensions.
 - Empirischer Test der `TimeZoneInfo`-Randfälle (Lord Howe, Kathmandu, `europe/warsaw`, `US/Eastern`) auf Linux/Windows – keine .NET-Installation in der Recherche-Umgebung.
 - `global.json`-Schlüssel für MTP gegen global.json-Referenz verifizieren (geklärt, siehe Scaffold-Befunde / D14); xUnit-v3- vs. MSTest- vs. TUnit-Versionen; Verify-Lizenz/Sponsoring-Status (geklärt, siehe Scaffold-Befunde / D14).
@@ -227,8 +227,20 @@ Quelle: Quellcode `modelcontextprotocol/csharp-sdk`, `main` @ 8b00f20 (23.10.202
 - NetArchTest.eNhancedEdition 1.4.5 (Mono.Cecil 0.11.6) bietet `FailingTypes`, nicht `FailingTypeNames`.
 - Eine `ProjectReference` auf eine Exe kopiert `McpTime.Host.dll` und `McpTime.Host.runtimeconfig.json` ins Testausgabeverzeichnis (geprüft).
 - Der Trim-Analyzer (`EnableTrimAnalyzer`) meldet nichts für `Host.CreateApplicationBuilder` + `AddConsole` + `AddMcpServer().WithStdioServerTransport()`.
-- Ein MCP-Server ohne Tools meldet die Fähigkeit `tools` nicht → `tools/list` ist „nicht verfügbar“; `WithListToolsHandler` mit leerem `ListToolsResult` ist der minimale Platzhalter.
+- Ein MCP-Server ohne Tools meldet die Fähigkeit `tools` nicht → `tools/list` ist „nicht verfügbar“; `WithListToolsHandler` mit leerem `ListToolsResult` ist der minimale Platzhalter (in Slice 01 durch die registrierten Tools ersetzt).
 - SDK 2.3.0 verhandelt auf demselben stdio-Server sowohl „2025-11-25“ als auch „2026-07-28“; `McpClient.NegotiatedProtocolVersion` zeigt, welche gilt.
+
+## Slice-01-Befunde (SDK 2.3.0, Quellcode main)
+
+- `McpServerTool` ist ableitbar: `protected` Konstruktor; abstrakt sind `Tool ProtocolTool`, `IReadOnlyList<object> Metadata` und `ValueTask<CallToolResult> InvokeAsync(RequestContext<CallToolRequestParams>, CancellationToken)`.
+- `WithTools(IEnumerable<McpServerTool>)` registriert fertige Instanzen ohne Reflection.
+- `ToolAnnotations` hat vier `bool?`-Hints (`readOnlyHint`, `destructiveHint`, `idempotentHint`, `openWorldHint`).
+- `Tool.InputSchema` ist `JsonElement`, `Tool.OutputSchema` ist `JsonElement?`.
+- `AddMcpServer(Action<McpServerOptions>)` setzt `ServerInfo` (`Implementation { Name, Version }`, beide `required`).
+- `McpProtocolException : McpException` trägt einen `ErrorCode`.
+- In 2026-07-28 weist `ValidateRequestMethodBoundary` `ping` mit -32601 ab, `initialize` auf einer modernen Sitzung ebenso.
+- Roh-Requests lassen sich im Test über `McpSession.SendRequestAsync(JsonRpcRequest)` senden.
+- stdin-EOF beendet den stdio-Transport sofort: Werden Requests gesendet und stdin direkt danach geschlossen, laufen die Handler noch (stderr zeigt `"get_current_time" completed`), aber auf stdout kommt keine Antwort mehr, Exit 0. Ein `echo … | dotnet run`-Test zeigt deshalb nichts; Roh-Tests müssen die Antwort abwarten, bevor sie stdin schließen (so macht es `RawStdioServer`).
 
 ## Quellen
 

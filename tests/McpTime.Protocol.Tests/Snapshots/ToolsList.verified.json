@@ -1,1 +1,163 @@
-[]
+[
+  {
+    "name": "get_current_time",
+    "description": "Returns the current date and time in an IANA time zone, including the UTC offset, the English weekday and whether daylight saving time is in effect.",
+    "inputSchema": {
+      "title": "GetCurrentTimeInput",
+      "type": "object",
+      "properties": {
+        "timezone": {
+          "type": "string",
+          "description": "IANA time zone name such as 'America/New_York' or 'Europe/London'. Use 'UTC' (the server's local time zone) if the user does not name one."
+        }
+      },
+      "required": [
+        "timezone"
+      ]
+    },
+    "outputSchema": {
+      "title": "TimeResult",
+      "type": "object",
+      "properties": {
+        "timezone": {
+          "type": "string",
+          "description": "IANA time zone name exactly as requested."
+        },
+        "datetime": {
+          "type": "string",
+          "description": "ISO 8601 date and time with UTC offset, such as 2024-01-01T13:00:00+01:00."
+        },
+        "day_of_week": {
+          "type": "string",
+          "description": "English weekday name, such as Monday."
+        },
+        "is_dst": {
+          "type": "boolean",
+          "description": "True when daylight saving time is in effect at that moment."
+        }
+      },
+      "required": [
+        "timezone",
+        "datetime",
+        "day_of_week",
+        "is_dst"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": true
+    }
+  },
+  {
+    "name": "convert_time",
+    "description": "Converts a wall-clock time from one IANA time zone to another and reports the offset difference in hours. Handles daylight saving time, quarter-hour offsets and date boundaries.",
+    "inputSchema": {
+      "title": "ConvertTimeInput",
+      "type": "object",
+      "properties": {
+        "source_timezone": {
+          "type": "string",
+          "description": "IANA time zone the given time is in, such as 'Europe/Vienna'. Use 'UTC' (the server's local time zone) if the user does not name a source time zone."
+        },
+        "time": {
+          "type": "string",
+          "description": "Time to convert in 24-hour HH:MM format, such as '14:30'."
+        },
+        "target_timezone": {
+          "type": "string",
+          "description": "IANA time zone to convert to, such as 'Asia/Tokyo'. Use 'UTC' (the server's local time zone) if the user does not name a target time zone."
+        },
+        "date": {
+          "type": "string",
+          "description": "Optional date of the time to convert in YYYY-MM-DD format, such as '2024-03-10'. Defaults to today in the source time zone."
+        }
+      },
+      "required": [
+        "source_timezone",
+        "time",
+        "target_timezone"
+      ]
+    },
+    "outputSchema": {
+      "title": "TimeConversionResult",
+      "type": "object",
+      "properties": {
+        "source": {
+          "title": "TimeResult",
+          "type": "object",
+          "description": "The given time in the source time zone.",
+          "properties": {
+            "timezone": {
+              "type": "string",
+              "description": "IANA time zone name exactly as requested."
+            },
+            "datetime": {
+              "type": "string",
+              "description": "ISO 8601 date and time with UTC offset, such as 2024-01-01T13:00:00+01:00."
+            },
+            "day_of_week": {
+              "type": "string",
+              "description": "English weekday name, such as Monday."
+            },
+            "is_dst": {
+              "type": "boolean",
+              "description": "True when daylight saving time is in effect at that moment."
+            }
+          },
+          "required": [
+            "timezone",
+            "datetime",
+            "day_of_week",
+            "is_dst"
+          ]
+        },
+        "target": {
+          "title": "TimeResult",
+          "type": "object",
+          "description": "The same moment in the target time zone.",
+          "properties": {
+            "timezone": {
+              "type": "string",
+              "description": "IANA time zone name exactly as requested."
+            },
+            "datetime": {
+              "type": "string",
+              "description": "ISO 8601 date and time with UTC offset, such as 2024-01-01T13:00:00+01:00."
+            },
+            "day_of_week": {
+              "type": "string",
+              "description": "English weekday name, such as Monday."
+            },
+            "is_dst": {
+              "type": "boolean",
+              "description": "True when daylight saving time is in effect at that moment."
+            }
+          },
+          "required": [
+            "timezone",
+            "datetime",
+            "day_of_week",
+            "is_dst"
+          ]
+        },
+        "time_difference": {
+          "type": "string",
+          "description": "UTC offset of the target minus the source time zone in hours, such as +5.75h or -4.0h."
+        }
+      },
+      "required": [
+        "source",
+        "target",
+        "time_difference"
+      ]
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": true
+    }
+  }
+]
