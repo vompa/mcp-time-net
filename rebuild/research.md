@@ -85,7 +85,7 @@ Pass 1 – BROAD und Pass 2 – DEEP abgeschlossen (DEEP-Abschnitte mit Präfix 
 
 ### Snapshot-/Approval-Tests
 
-- **Verify** (VerifyTests) ist das verbreitetste Snapshot-Tool in .NET; Adapter für xUnit (v3), NUnit, MSTest, TUnit; geeignet, um JSON von `tools/list` (Schemas, Annotations) und Tool-Results gegen akzeptierte `.verified.*`-Dateien zu prüfen. Verify hat 2026 Sponsoring-Änderungen kommuniziert (Lizenz/Finanzierung in DEEP prüfen). (https://docsearch.algolia.com/mcp/docs/repo/verifytests/verify, https://duendesoftware.com/blog/20260409-verify-open-source-sponsorship)
+- **Verify** (VerifyTests) ist das verbreitetste Snapshot-Tool in .NET; Adapter für xUnit (v3), NUnit, MSTest, TUnit; geeignet, um JSON von `tools/list` (Schemas, Annotations) und Tool-Results gegen akzeptierte `.verified.*`-Dateien zu prüfen. Verify hat 2026 Sponsoring-Änderungen kommuniziert (Lizenz/Finanzierung in DEEP prüfen) (geklärt 2026-10-23: Sponsoring-Erklärung ab v33 nötig → kein Verify, siehe D14). (https://docsearch.algolia.com/mcp/docs/repo/verifytests/verify, https://duendesoftware.com/blog/20260409-verify-open-source-sponsorship)
 - Testframework-Landschaft (xUnit v3 / MSTest / TUnit auf Microsoft.Testing.Platform, `dotnet test` in .NET 10) in diesem Lauf nicht recherchiert → DEEP.
 
 ### Container & Globalisierung (Docker-Distribution)
@@ -192,7 +192,7 @@ Quelle: Quellcode `modelcontextprotocol/csharp-sdk`, `main` @ 8b00f20 (23.10.202
 | D11 | Ergebnisobjekte als `structuredContent` mit Ausgabeschema plus JSON-Textblock; Serialisierung mit System.Text.Json und `JsonSerializerContext` | Ergebnisform des Originals; hält Trimming/AOT offen | SDK-Abschnitt |
 | D12 | Tools explizit registrieren statt `WithToolsFromAssembly` | Reflection-Discovery ist bei Trimming/AOT problematisch | Fallstricke MCP SDK |
 | D13 | „Jetzt“ über `TimeProvider`; Tests mit `FakeTimeProvider`, Brücke zu NodaTime über deren `TimeProvider`-Interop | eine einzige Testuhr für BCL und NodaTime | Tests, NodaTime |
-| D14 | Tests mit xUnit v3 auf Microsoft.Testing.Platform (`global.json`), Snapshots von `tools/list` mit Verify | MTP ist Standard in .NET 10; Verify verbreitet | Tests |
+| D14 | Tests mit xUnit v3 auf Microsoft.Testing.Platform (`global.json`), Snapshots von `tools/list` als eigener JSON-Vergleich im Testprojekt | MTP ist Standard in .NET 10. Befund: Verify ≥ 33 (nach 2026-09-01) verlangt eine Sponsoring-/Lizenz-Erklärung im Build (SponsorCheck SC021, Ausnahmen befristet auf 12 Monate); Entscheidung Nutzer 2026-10-23: kein Verify | Tests |
 | D15 | CLI mit `System.CommandLine` 2.0.x (stabil) | `--help`, unbekannte Optionen und Prüfung von `--local-timezone` ohne Eigenbau | CLI-Parsing |
 | D16 | Logging nur nach stderr; stdout gehört dem Transport | stdio-Regel | stdio-Hosting |
 | D17 | Auslieferung als `dotnet tool` (`PackAsTool`, `PackageType McpServer`, `.mcp/server.json`), Start per `dnx`; RID-spezifische Pakete nur, wenn alle gepusht werden | offizieller .NET-Weg, NuGet-MCP-Tab | Packaging |
@@ -213,10 +213,22 @@ Quelle: Quellcode `modelcontextprotocol/csharp-sdk`, `main` @ 8b00f20 (23.10.202
 - Verhalten bei fehlenden/falsch typisierten Argumenten (Binding-Fehler: `isError` vs. -32602) im SDK 2.3.
 - NodaTime: Case-Sensitivity von `Tzdb.GetZoneOrNull` und ob `Tzdb.Ids` Aliase enthält; API der `TimeProvider`-Extensions.
 - Empirischer Test der `TimeZoneInfo`-Randfälle (Lord Howe, Kathmandu, `europe/warsaw`, `US/Eastern`) auf Linux/Windows – keine .NET-Installation in der Recherche-Umgebung.
-- `global.json`-Schlüssel für MTP gegen global.json-Referenz verifizieren; xUnit-v3- vs. MSTest- vs. TUnit-Versionen; Verify-Lizenz/Sponsoring-Status.
+- `global.json`-Schlüssel für MTP gegen global.json-Referenz verifizieren (geklärt, siehe Scaffold-Befunde / D14); xUnit-v3- vs. MSTest- vs. TUnit-Versionen; Verify-Lizenz/Sponsoring-Status (geklärt, siehe Scaffold-Befunde / D14).
 - Template-Output `dotnet new mcpserver` (ToolCommandName, server.json-Packing, AOT-Option); .NET-10-chiseled-Tag-Namen (`10.0-noble-chiseled-extra`) auf MCR verifizieren.
 - CLI-Parsing (`System.CommandLine` vs. Host-Konfiguration) und Wechselwirkung mit `Host.CreateApplicationBuilder(args)`.
 - Kulturunabhängige Formatierung (Wochentag englisch, ISO 8601) – BCL-Standardwissen, nicht vertieft.
+
+## Scaffold-Befunde (Slice 00)
+
+- xunit.v3 4.0.2 braucht `UseMicrosoftTestingPlatformRunner` + `OutputType Exe`, kein `Microsoft.NET.Test.Sdk`.
+- `global.json`-Schlüssel `test.runner = "Microsoft.Testing.Platform"` ist in der Microsoft-Doku (`global-json.md`) bestätigt.
+- xunit.v3 hat kein implizites `using Xunit` → `<Using Include="Xunit" />` in `tests/Directory.Build.props`.
+- Verify.XunitV3 33.3.4 hängt an `xunit.v3.extensibility.core` 4.0.2, bricht den Build aber mit SponsorCheck SC021 ohne Lizenz-Erklärung ab (32.0.1 bräuchte xunit.v3 3.2.2) → Entscheidung: eigener JSON-Snapshot.
+- NetArchTest.eNhancedEdition 1.4.5 (Mono.Cecil 0.11.6) bietet `FailingTypes`, nicht `FailingTypeNames`.
+- Eine `ProjectReference` auf eine Exe kopiert `McpTime.Host.dll` und `McpTime.Host.runtimeconfig.json` ins Testausgabeverzeichnis (geprüft).
+- Der Trim-Analyzer (`EnableTrimAnalyzer`) meldet nichts für `Host.CreateApplicationBuilder` + `AddConsole` + `AddMcpServer().WithStdioServerTransport()`.
+- Ein MCP-Server ohne Tools meldet die Fähigkeit `tools` nicht → `tools/list` ist „nicht verfügbar“; `WithListToolsHandler` mit leerem `ListToolsResult` ist der minimale Platzhalter.
+- SDK 2.3.0 verhandelt auf demselben stdio-Server sowohl „2025-11-25“ als auch „2026-07-28“; `McpClient.NegotiatedProtocolVersion` zeigt, welche gilt.
 
 ## Quellen
 

@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/McpTime.Core/McpTime.Core.csproj" />
+    <Project Path="src/McpTime.Server/McpTime.Server.csproj" />
+    <Project Path="src/McpTime.Host/McpTime.Host.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/McpTime.Core.Tests/McpTime.Core.Tests.csproj" />
+    <Project Path="tests/McpTime.ArchitectureTests/McpTime.ArchitectureTests.csproj" />
+    <Project Path="tests/McpTime.Protocol.Tests/McpTime.Protocol.Tests.csproj" />
+  </Folder>
+</Solution>

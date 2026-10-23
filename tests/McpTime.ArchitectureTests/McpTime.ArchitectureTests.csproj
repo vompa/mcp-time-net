@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="NetArchTest.eNhancedEdition" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/McpTime.Core/McpTime.Core.csproj" />
+    <ProjectReference Include="../../src/McpTime.Server/McpTime.Server.csproj" />
+    <ProjectReference Include="../../src/McpTime.Host/McpTime.Host.csproj" />
+  </ItemGroup>
+</Project>

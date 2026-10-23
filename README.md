@@ -109,6 +109,17 @@ Nach Slice 02 sind 03 (Umrechnung) und 04 (Start und Verteilung) unabhängig von
 | `rebuild/parity/` | erwartetes Verhalten aus dem Original (Fälle mit exakten Werten), Abweichungsprotokoll |
 | `src/`, `tests/` | der neue Code (entsteht ab Slice 00) |
 
+## Bauen und testen
+
+```bash
+dotnet build -warnaserror
+dotnet test                                  # alle Tests (Core, Protokoll, Architektur)
+dotnet run --project src/McpTime.Host -- --local-timezone Europe/Vienna
+dotnet pack src/McpTime.Host -c Release      # dotnet tool (D17)
+npx @modelcontextprotocol/inspector --cli dotnet run --project src/McpTime.Host --method tools/list
+dotnet format --verify-no-changes
+```
+
 ## Annahmen, die du prüfen solltest
 
 - `convert_time` bekommt ein optionales `date`. Ohne `date` bleibt das Verhalten wie beim Original.

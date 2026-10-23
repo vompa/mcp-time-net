@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../McpTime.Core/McpTime.Core.csproj" />
+    <PackageReference Include="ModelContextProtocol" />
+  </ItemGroup>
+</Project>

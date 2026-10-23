@@ -12,7 +12,7 @@ src/
   McpTime.Core     → (nur NodaTime)                  (Fachlogik: TimeZoneName, TimeResult, Umrechnung, Zeitdifferenz)
 tests/
   McpTime.Core.Tests       Business-Fälle (rebuild/parity/business-cases.md), FakeTimeProvider
-  McpTime.Protocol.Tests   Schnittstellen-Fälle (rebuild/parity/interface-cases.md), MCP-Client gegen den gebauten Server, Verify-Snapshots
+  McpTime.Protocol.Tests   Schnittstellen-Fälle (rebuild/parity/interface-cases.md), MCP-Client gegen den gebauten Server, JSON-Snapshots (eigener Vergleich, D14)
   McpTime.ArchitectureTests
 ```
 
@@ -30,7 +30,7 @@ tests/
 - Fachfehler als selbst gebautes `CallToolResult { IsError = true }` mit klarem Text; nie `McpException`/`McpProtocolException` für Fachfehler (D7). Fehlertexte nennen Feld, Wert und erwartetes Format.
 - Alle vier Tool-Annotations explizit setzen (D9); Tools explizit registrieren, nicht per Reflection-Scan (D12); JSON nur über `JsonSerializerContext` (D11).
 - Tool-Namen, Parameter, Ergebnisfelder bleiben kompatibel zum Original (PRD P2). Beschreibungstexte selbst formulieren: Zweck, Formate, lokale Zone als Standard.
-- Keine neuen Pakete ohne Rückfrage. Freigegeben: `ModelContextProtocol` 2.3.x, `NodaTime` 3.3.x, `System.CommandLine` 2.0.x, `Microsoft.Extensions.Hosting`, `xunit.v3`, `Microsoft.Extensions.TimeProvider.Testing`, `Verify.XunitV3`, `NetArchTest.eNhancedEdition`.
+- Keine neuen Pakete ohne Rückfrage. Freigegeben: `ModelContextProtocol` 2.3.x, `NodaTime` 3.3.x, `System.CommandLine` 2.0.x, `Microsoft.Extensions.Hosting`, `xunit.v3`, `Microsoft.Extensions.TimeProvider.Testing`, `NetArchTest.eNhancedEdition`. Kein Verify (Sponsoring-Erklärung ab v33, siehe `research.md` D14).
 - Das Original wird nie gebaut, gestartet oder gelesen. Fehlt etwas im Plan, ist das eine Lücke → nachfragen.
 
 ## Forbidden (legacy)
