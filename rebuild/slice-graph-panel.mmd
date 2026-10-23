@@ -1,0 +1,16 @@
+%%{init: {"theme":"base","fontFamily":"Inter, Segoe UI, Helvetica Neue, Arial, sans-serif","flowchart":{"curve":"basis","nodeSpacing":24,"rankSpacing":34,"padding":10},"themeVariables":{"fontFamily":"Inter, Segoe UI, Helvetica Neue, Arial, sans-serif","fontSize":"14px","lineColor":"#8A94A6"}}}%%
+flowchart TB
+  classDef base fill:#E8EEF9,stroke:#3B5B9A,color:#1B2B4A,stroke-width:1.5px
+  classDef files fill:#E7F4EC,stroke:#2F7A4D,color:#173D27,stroke-width:1.5px
+  classDef proc fill:#FCEFE3,stroke:#B4651E,color:#4F2B0B,stroke-width:1.5px
+  classDef finish fill:#FBE8EA,stroke:#A8394A,color:#4A1720,stroke-width:1.5px
+
+  S00["00 · Scaffold"]:::base --> S01["01 · Server-Kern<br/>& Protokoll"]:::base --> S02["02 · Zeitzonen &<br/>aktuelle Zeit"]:::files
+  subgraph Q["parallel nach 02"]
+    direction LR
+    S03["03 · Umrechnung"]:::files
+    S04["04 · Start &<br/>Verteilung"]:::finish
+  end
+  S02 --> S03
+  S02 --> S04
+  style Q fill:#FAFBFC,stroke:#D5DAE3
