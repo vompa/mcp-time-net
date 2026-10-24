@@ -1,0 +1,51 @@
+name: Release
+
+# Publishes Vompa.McpTime to nuget.org via Trusted Publishing (policy "mcp-time-net-release").
+# Start: push a tag vX.Y.Z whose version matches Directory.Build.props and .mcp/server.json.
+on:
+  push:
+    tags: ["v*.*.*"]
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  CI: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+      - name: Check that the tag matches the package version
+        shell: bash
+        run: |
+          tag_version="${GITHUB_REF_NAME#v}"
+          props_version=$(sed -n 's:.*<Version>\(.*\)</Version>.*:\1:p' Directory.Build.props)
+          server_versions=$(grep -o '"version": *"[^"]*"' src/McpTime.Host/.mcp/server.json | sed 's/.*"\([^"]*\)"$/\1/' | sort -u)
+          echo "tag=$tag_version props=$props_version server.json=$server_versions"
+          if [ "$tag_version" != "$props_version" ] || [ "$server_versions" != "$tag_version" ]; then
+            echo "::error::tag, Directory.Build.props and server.json must carry the same version"
+            exit 1
+          fi
+      - run: dotnet restore
+      - run: dotnet build --no-restore -warnaserror
+      - run: dotnet test --no-build
+      - run: dotnet pack src/McpTime.Host -c Release -o artifacts/package
+      - name: Smoke test tool package
+        shell: bash
+        run: |
+          dotnet dnx Vompa.McpTime --source artifacts/package --yes -- --help | grep -q -- '--local-timezone'
+      - name: Log in to nuget.org (Trusted Publishing)
+        id: login
+        uses: NuGet/login@v1
+        with:
+          user: vompa
+      - name: Push to nuget.org
+        run: dotnet nuget push "artifacts/package/*.nupkg" --api-key "${{ steps.login.outputs.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json

@@ -96,6 +96,17 @@ npx @modelcontextprotocol/inspector --cli dotnet run --project src/McpTime.Host 
 dotnet format --verify-no-changes
 ```
 
+## Veröffentlichen auf nuget.org
+
+`.github/workflows/release.yml` veröffentlicht `Vompa.McpTime` per Trusted Publishing (nuget.org-Policy `mcp-time-net-release`, ohne API-Key). Auslöser ist ein Tag `vX.Y.Z`; die Version muss in `Directory.Build.props` und in `src/McpTime.Host/.mcp/server.json` (beide Felder) gleich sein, sonst bricht der Workflow ab.
+
+```bash
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+Danach im Client: `{ "command": "dotnet", "args": ["dnx", "Vompa.McpTime", "--yes"] }` (unter Windows `dotnet` mit `dnx` als Argument, weil es nur `dnx.cmd` gibt).
+
 ## Wo steht was
 
 | Ordner/Datei | Inhalt |
