@@ -2,4 +2,7 @@
   <ItemGroup>
     <PackageReference Include="NodaTime" />
   </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="McpTime.Core.Tests" />
+  </ItemGroup>
 </Project>

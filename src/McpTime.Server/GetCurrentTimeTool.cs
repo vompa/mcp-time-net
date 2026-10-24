@@ -22,7 +22,7 @@ internal sealed class GetCurrentTimeTool(string localTimeZone, CurrentTime curre
     {
         if (!ToolArguments.TryGetText(parameters, TimeZoneArgument, out var text))
         {
-            return ToolErrors.MissingArgument(TimeZoneArgument);
+            return ToolErrors.MissingTimeZone(TimeZoneArgument);
         }
 
         if (!TimeZoneName.TryCreate(text, out var zone))

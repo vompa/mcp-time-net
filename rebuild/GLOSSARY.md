@@ -7,7 +7,7 @@
 | Zeitpunkt-Ergebnis | `TimeResult` | `timezone`, `datetime` (ISO 8601 mit Offset, Sekunden), `day_of_week` (Englisch), `is_dst` |
 | Umrechnungs-Ergebnis | `TimeConversionResult` | `source`, `target` (je `TimeResult`), `time_difference` |
 | Zeitdifferenz | `TimeDifference` | Offset Ziel − Offset Quelle zum umgerechneten Zeitpunkt, z. B. `+5.75h` |
-| Ortszeit | – | Wanduhrzeit `HH:MM` in einer Zone |
+| Ortszeit | `WallClockTime` | Wanduhrzeit `HH:MM` in einer Zone |
 | Bezugstag | `ReferenceDate` | Datum der Umrechnung: `date`, sonst „heute“ in der Quellzone |
 | Nicht existierende Ortszeit | – | durch Sommerzeit-Sprung übersprungene Uhrzeit → Fehler |
 | Doppeldeutige Ortszeit | – | bei Zeitumstellung doppelt vorkommende Uhrzeit → erstes Vorkommen |

@@ -5,4 +5,5 @@ namespace McpTime.Server;
 
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.SnakeCaseLower)]
 [JsonSerializable(typeof(TimeResult))]
+[JsonSerializable(typeof(TimeConversionResult))]
 internal sealed partial class McpTimeJsonContext : JsonSerializerContext;

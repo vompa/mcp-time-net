@@ -251,6 +251,16 @@ Quelle: Quellcode `modelcontextprotocol/csharp-sdk`, `main` @ 8b00f20 (23.10.202
 - Muster `uuuu'-'MM'-'dd'T'HH':'mm':'sso<+HH:mm>` gibt für UTC `+00:00` aus (nicht `Z`).
 - `NodaTime.Extensions.TimeProviderExtensions` existiert; genutzt wird stattdessen `Instant.FromDateTimeOffset(timeProvider.GetUtcNow())`.
 
+## Slice-03-Befunde (NodaTime 3.3.6, tzdb 2026e, Probe)
+
+- `LocalDatePattern.Iso` (`uuuu'-'MM'-'dd`) lehnt `2024-02-30`, `15.07.2024`, `+2024-01-01`, `2024-1-5`, ` 2024-01-01` und Vollbreiten-Ziffern (z. B. ２０２４) ab, **akzeptiert aber** `0000-01-01` (Jahr 0 = 1 v. Chr.) und `-0001-01-01` → zusätzlicher Bereich `0001-01-02` bis `9999-12-29`.
+- `(new LocalDate(9999,12,31) + new LocalTime(23,59))` in UTC, dann `.ToInstant().InZone(Pacific/Kiritimati)` wirft `ArgumentOutOfRangeException` („daysSinceEpoch“) → der Bereich endet am 9999-12-29: Die Offsets reichen im Jahr 9999 von −12 h bis +14 h (Spreizung 26 h). Pago_Pago 9999-12-30 23:59 → Kiritimati läge bei 10000-01-01T00:59 und wirft ebenfalls; 9999-12-29 23:59 von `Etc/GMT+12` nach Kiritimati ergibt `9999-12-31T01:59:00+14:00` (+26.0h).
+- Untergrenze `0001-01-02`: kein Überlauf möglich (NodaTime reicht bis Jahr −9998). Im Jahr 1 gelten LMT-Offsets von `−15:56:08` (Asia/Manila) bis `+15:13:42` (America/Metlakatla), Spreizung rund 31 h; das Ergebnis kann daher im Jahr 0000 liegen (z. B. America/Adak 0001-01-02 00:00 → `0000-12-31T19:50:30-15:56:08`), gültig als astronomisches ISO-8601-Jahr. Gewählt als erster Tag nach 0001-01-01, damit `0000`/negative Eingaben ausgeschlossen bleiben. Abschluss-Review: alle 597 × 597 Zonenpaare an beiden Grenztagen um 00:00 und 23:59 ohne Exception (1.425.636 Fälle).
+- `America/New_York`: 2024-03-10 02:30 → `MapLocal` Count 0 (übersprungen); 2024-11-03 01:30 → Count 2, `First()` = `2024-11-03T01:30:00-04:00`.
+- Historische Ortszeit: Europe/Vienna 1850-01-01 12:00 hat Offset `+01:05:21` (3921 s), Asia/Kolkata 1900-01-01 12:00 `+05:21:10`. Das Muster `o<+HH:mm>` kürzt auf `+01:05`; `o<+HH:mm:ss>` gibt `+01:05:21` aus → Sekunden nur, wenn der Offset welche hat.
+- .NET-`\d` trifft auch arabisch-indische Ziffern (`١٢`) → `[0-9]`; `$` trifft vor einem abschließenden `\n` → `\z`.
+- Rundung der Zeitdifferenz: −18 s ergibt −0,005 h und mit `AwayFromZero` −0,01 h (nicht `+0.0h`); der Test für „nie `-0.0h`“ nutzt deshalb −17 s.
+
 ## Quellen
 
 - .NET Support Policy: https://dotnet.microsoft.com/en-us/platform/support/policy/dotnet-core

@@ -17,6 +17,6 @@ public static class McpTimeServerServiceCollectionExtensions
 
         var currentTime = new CurrentTime(timeProvider);
         return services.AddMcpServer(options => options.ServerInfo = McpTimeServerInfo.Create())
-            .WithTools([new GetCurrentTimeTool(localTimeZone, currentTime), new ConvertTimeTool(localTimeZone)]);
+            .WithTools([new GetCurrentTimeTool(localTimeZone, currentTime), new ConvertTimeTool(localTimeZone, new TimeConversion(timeProvider))]);
     }
 }

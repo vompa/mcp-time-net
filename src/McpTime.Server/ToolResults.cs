@@ -17,7 +17,4 @@ internal static class ToolResults
         IsError = true,
         Content = [new TextContentBlock { Text = message }],
     };
-
-    public static CallToolResult NotImplemented(string toolName)
-        => Error($"Tool '{toolName}' is not implemented yet.");
 }
