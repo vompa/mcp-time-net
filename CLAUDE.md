@@ -17,7 +17,7 @@ tests/
 ```
 
 - Pfeile = erlaubte Abhängigkeiten, sonst keine. `ModelContextProtocol` nur in Host und Server, `System.CommandLine` nur im Host.
-- **Erzwungen** durch `McpTime.ArchitectureTests` (NetArchTest): Abhängigkeitsrichtungen, kein MCP-SDK in Core, kein `Console.Out`/`Console.WriteLine` außer im Transport.
+- **Erzwungen** durch `McpTime.ArchitectureTests` (NetArchTest): Abhängigkeitsrichtungen, kein MCP-SDK in Core, kein NodaTime im Server, kein `Console.Out`/`Console.WriteLine` außer im Transport.
 - `TreatWarningsAsErrors`, Nullable an, `AnalysisLevel latest-recommended`, Trim-Analyzer an (D19).
 - `.slnx`, zentrale Paketverwaltung (`Directory.Packages.props`), `global.json` mit Microsoft Testing Platform (D14).
 

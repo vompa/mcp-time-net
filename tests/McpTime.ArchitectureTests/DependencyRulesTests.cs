@@ -34,6 +34,17 @@ public class DependencyRulesTests
     }
 
     [Fact]
+    public void ServerDoesNotDependOnNodaTime()
+    {
+        var result = Types.InAssembly(Assemblies.Server)
+            .ShouldNot()
+            .HaveDependencyOnAny("NodaTime")
+            .GetResult();
+
+        Assert.True(result.IsSuccessful, string.Join(", ", (result.FailingTypes ?? []).Select(type => type.FullName)));
+    }
+
+    [Fact]
     public void HostIsTheOnlyPlaceForTheProcessEntryPoint()
     {
         Assert.NotNull(Assemblies.Host.EntryPoint);
