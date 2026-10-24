@@ -1,19 +1,19 @@
-# Slice 04 – Start, lokale Zeitzone & Verteilung
+# Slice 04 – Start, local time zone & distribution
 
-**Goal:** Server startet mit erkannter oder überschriebener lokaler Zeitzone und ist installierbar wie in research.md entschieden.
+**Goal:** The server starts with the detected or overridden local time zone and can be installed as decided in research.md.
 **PRD reference:** F4, F1 AC5
 **Depends on:** 02
 
 ## Scope
-- --local-timezone mit Prüfung vor dem Transport, eine Zeile auf stderr bei Fehler
-- Systemzone erkennen, Fallback UTC; lokale Zone in den Parameterbeschreibungen
-- --help, unbekannte Optionen
-- Paketierung und Auslieferung laut research.md, Smoke-Test in der CI
+- --local-timezone checked before the transport, one line on stderr on error
+- Detect the system zone, fall back to UTC; local zone in the parameter descriptions
+- --help, unknown options
+- Packaging and delivery as in research.md, smoke test in CI
 
 ## Prompt
 ```
 Read CLAUDE.md, rebuild/GLOSSARY.md, rebuild/research.md and the rebuild/PRD.md sections "F4, F1 AC5".
-Implement slice 04 "Start, lokale Zeitzone & Verteilung" (this file).
+Implement slice 04 "Start, local time zone & distribution" (this file).
 0. If this slice needs a library or pattern research.md does not cover,
    look up its current documentation first and add the findings to rebuild/research.md.
 1. First present a plan (files, classes, tests) and wait for approval.
@@ -30,4 +30,4 @@ Implement slice 04 "Start, lokale Zeitzone & Verteilung" (this file).
 - [ ] No dead code, no TODOs without an issue
 
 ## Non-goals
-HTTP-Transport
+HTTP transport

@@ -1,15 +1,15 @@
-# Glossar
+# Glossary
 
-| Begriff | Code | Bedeutung |
+| Term | Code | Meaning |
 |---|---|---|
-| IANA-Zeitzone | `TimeZoneName` | exakter Schlüssel der Zeitzonen-Datenbank, z. B. `Europe/Vienna` |
-| Lokale Zeitzone | `LocalTimeZone` | aus `--local-timezone`, sonst vom System erkannt, sonst `UTC` |
-| Zeitpunkt-Ergebnis | `TimeResult` | `timezone`, `datetime` (ISO 8601 mit Offset, Sekunden), `day_of_week` (Englisch), `is_dst` |
-| Umrechnungs-Ergebnis | `TimeConversionResult` | `source`, `target` (je `TimeResult`), `time_difference` |
-| Zeitdifferenz | `TimeDifference` | Offset Ziel − Offset Quelle zum umgerechneten Zeitpunkt, z. B. `+5.75h` |
-| Ortszeit | `WallClockTime` | Wanduhrzeit `HH:MM` in einer Zone |
-| Bezugstag | `ReferenceDate` | Datum der Umrechnung: `date`, sonst „heute“ in der Quellzone |
-| Nicht existierende Ortszeit | – | durch Sommerzeit-Sprung übersprungene Uhrzeit → Fehler |
-| Doppeldeutige Ortszeit | – | bei Zeitumstellung doppelt vorkommende Uhrzeit → erstes Vorkommen |
-| Zeitquelle | `TimeProvider` | austauschbare Quelle für „jetzt“ (Tests: eingefroren) |
-| Protokollgeneration | – | 2025-11-25 (Handshake) oder 2026-07-28 (sitzungslos) |
+| IANA time zone | `TimeZoneName` | exact key of the time zone database, e.g. `Europe/Vienna` |
+| Local time zone | `LocalTimeZone` | from `--local-timezone`, else detected from the system, else `UTC` |
+| Time result | `TimeResult` | `timezone`, `datetime` (ISO 8601 with offset, seconds), `day_of_week` (English), `is_dst` |
+| Conversion result | `TimeConversionResult` | `source`, `target` (each a `TimeResult`), `time_difference` |
+| Time difference | `TimeDifference` | target offset − source offset at the converted moment, e.g. `+5.75h` |
+| Wall-clock time | `WallClockTime` | clock time `HH:MM` in a zone |
+| Reference date | `ReferenceDate` | date of the conversion: `date`, else "today" in the source zone |
+| Skipped wall-clock time | – | clock time skipped by a daylight saving jump → error |
+| Ambiguous wall-clock time | – | clock time that occurs twice at a clock change → first occurrence |
+| Time source | `TimeProvider` | replaceable source for "now" (tests: frozen) |
+| Protocol generation | – | 2025-11-25 (handshake) or 2026-07-28 (sessionless) |

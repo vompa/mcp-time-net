@@ -1,19 +1,19 @@
-# Slice 03 – Umrechnung
+# Slice 03 – Conversion
 
-**Goal:** convert_time rechnet Ortszeiten korrekt über Sommerzeit, Viertelstunden-Offsets und Datumsgrenzen um – mit optionalem Datum.
-**PRD reference:** F3, Verbesserungen
+**Goal:** convert_time converts wall-clock times correctly across daylight saving time, quarter-hour offsets, and date boundaries – with an optional date.
+**PRD reference:** F3, Improvements
 **Depends on:** 02
 
 ## Scope
-- Zeitformat H:M bis HH:MM, Bezugstag heute in der Quellzone oder optionales date
-- nicht existierende Ortszeit als Fehler, doppeldeutige als erstes Vorkommen
-- Zeitdifferenz zum umgerechneten Zeitpunkt im Format +1.0h / +5.75h
-- Eingabeschema um optionales date erweitern
+- Time format H:M to HH:MM, reference date today in the source zone or optional date
+- Skipped wall-clock time as an error, ambiguous wall-clock time as the first occurrence
+- Time difference at the converted moment in the format +1.0h / +5.75h
+- Extend the input schema with an optional date
 
 ## Prompt
 ```
-Read CLAUDE.md, rebuild/GLOSSARY.md, rebuild/research.md and the rebuild/PRD.md sections "F3, Verbesserungen".
-Implement slice 03 "Umrechnung" (this file).
+Read CLAUDE.md, rebuild/GLOSSARY.md, rebuild/research.md and the rebuild/PRD.md sections "F3, Improvements".
+Implement slice 03 "Conversion" (this file).
 0. If this slice needs a library or pattern research.md does not cover,
    look up its current documentation first and add the findings to rebuild/research.md.
 1. First present a plan (files, classes, tests) and wait for approval.
@@ -30,4 +30,4 @@ Implement slice 03 "Umrechnung" (this file).
 - [ ] No dead code, no TODOs without an issue
 
 ## Non-goals
-mehrere Zielzonen auf einmal
+Several target zones at once

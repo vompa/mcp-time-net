@@ -1,19 +1,19 @@
-# Slice 01 – Server-Kern & Protokoll
+# Slice 01 – Server core & protocol
 
-**Goal:** Server spricht beide Protokollgenerationen und listet beide Tools mit Schemas und Annotations.
+**Goal:** The server speaks both protocol generations and lists both tools with schemas and annotations.
 **PRD reference:** F1
 **Depends on:** 00
 
 ## Scope
-- Host mit stdio-Transport, stdout nur für JSON-RPC, Logs nach stderr
-- beide Tools registriert mit eigenen Beschreibungen, Ein- und Ausgabeschema, Annotations; Rümpfe vorerst ohne Logik
-- unbekanntes Tool als JSON-RPC -32602, unbekannte Argumente ignoriert
-- Server-Name und Version, keine Prompts/Ressourcen
+- Host with stdio transport, stdout only for JSON-RPC, logs to stderr
+- Both tools registered with own descriptions, input and output schema, annotations; bodies without logic for now
+- Unknown tool as JSON-RPC -32602, unknown arguments ignored
+- Server name and version, no prompts/resources
 
 ## Prompt
 ```
 Read CLAUDE.md, rebuild/GLOSSARY.md, rebuild/research.md and the rebuild/PRD.md sections "F1".
-Implement slice 01 "Server-Kern & Protokoll" (this file).
+Implement slice 01 "Server core & protocol" (this file).
 0. If this slice needs a library or pattern research.md does not cover,
    look up its current documentation first and add the findings to rebuild/research.md.
 1. First present a plan (files, classes, tests) and wait for approval.
@@ -30,4 +30,4 @@ Implement slice 01 "Server-Kern & Protokoll" (this file).
 - [ ] No dead code, no TODOs without an issue
 
 ## Non-goals
-Zeitlogik
+Time logic

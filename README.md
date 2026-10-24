@@ -1,144 +1,144 @@
-# mcp-time-net – MCP-Server „time“ auf .NET 10
+# mcp-time-net – MCP server "time" on .NET 10
 
-Kleiner lokaler MCP-Server (stdio) mit zwei rein lesenden Tools: `get_current_time` (aktuelle Zeit in einer IANA-Zeitzone) und `convert_time` (Ortszeit zwischen zwei Zeitzonen umrechnen, optional an einem bestimmten Datum).
+A small local MCP server (stdio) with two read-only tools: `get_current_time` (current time in an IANA time zone) and `convert_time` (convert a wall-clock time between two time zones, optionally on a specific date).
 
-## Herkunft
+## Origin
 
-Dieses Repo ist ein Neubau des MCP-Referenzservers **„time“** auf .NET 10:
+This repo is a rebuild of the MCP reference server **"time"** on .NET 10:
 
-- **Original:** [`modelcontextprotocol/servers` → `src/time`](https://github.com/modelcontextprotocol/servers/tree/51b6382/src/time), Stand Commit `51b6382`, Python, MIT-Lizenz.
-- **Kein Port, keine Kopie:** Aus dem Original wurden nur Verhalten, Schnittstellen und erwartete Werte übernommen (`rebuild/parity/`), kein Code. Der Rebuild selbst hat das Original nie gebaut, gestartet oder gelesen – alles, was er treffen muss, steht in `rebuild/`.
+- **Original:** [`modelcontextprotocol/servers` → `src/time`](https://github.com/modelcontextprotocol/servers/tree/51b6382/src/time), at commit `51b6382`, Python, MIT license.
+- **Not a port, not a copy:** Only behavior, interfaces, and expected values were taken from the original (`rebuild/parity/`), no code. The rebuild itself never built, started, or read the original – everything it has to meet is in `rebuild/`.
 
-## Testfall für den Skill `vibe-rebuild`
+## Test case for the skill `vibe-rebuild`
 
-Dieses Repo ist ein **direkter End-to-End-Test des Skills [`vibe-rebuild`](https://github.com/vompa/vibe-rebuild)** (Version 2.2.0) und dort als Referenz verlinkt: Der Skill hat aus dem Original den Plan in `rebuild/` erzeugt, und der Rebuild wurde danach ausschließlich mit dem vom Skill erzeugten Befehl `/rebuild` Slice für Slice umgesetzt. Die Git-Historie zeigt beide Phasen unverändert:
+This repo is a **direct end-to-end test of the skill [`vibe-rebuild`](https://github.com/vompa/vibe-rebuild)** (version 2.2.0) and is linked there as a reference: The skill created the plan in `rebuild/` from the original, and the rebuild was then implemented slice by slice using only the `/rebuild` command that the skill generated. The Git history shows both phases unchanged:
 
-| Commit | Zeit (MESZ) | Phase |
+| Commit | Time (CEST) | Phase |
 |---|---|---|
-| `591296e` | 23.10.2026 22:34 | Plan aus `vibe-rebuild` 2.2.0 (28 Dateien, kein Code) |
-| `9979965` | 23.10.2026 23:37 | Slice 00 Scaffold |
-| `4a23de6` | 24.10.2026 00:58 | Slice 01 Server-Kern & Protokoll |
-| `92cde94` | 24.10.2026 04:54 | Slice 02 Zeitzonen & aktuelle Zeit |
-| `9918428` | 24.10.2026 05:28 | Slice 03 Umrechnung |
-| `32bc117` | 24.10.2026 06:13 | Slice 04 Start, lokale Zeitzone & Verteilung |
-| `dfa7b1c` | 24.10.2026 06:18 | Nachtrag: Architekturtest „Server ohne NodaTime“ |
+| `591296e` | 2026-10-23 22:34 | Plan from `vibe-rebuild` 2.2.0 (28 files, no code) |
+| `9979965` | 2026-10-23 23:37 | Slice 00 Scaffold |
+| `4a23de6` | 2026-10-24 00:58 | Slice 01 Server core & protocol |
+| `92cde94` | 2026-10-24 04:54 | Slice 02 Time zones & current time |
+| `9918428` | 2026-10-24 05:28 | Slice 03 Conversion |
+| `32bc117` | 2026-10-24 06:13 | Slice 04 Start, local time zone & distribution |
+| `dfa7b1c` | 2026-10-24 06:18 | Addendum: architecture test "Server without NodaTime" |
 
-Ergebnis: alle Vergleichsfälle aus `rebuild/parity/` grün, 202 Tests (70 Testmethoden, davon 35 Theories) in drei Testprojekten grün (24.10.2026), 853 Zeilen Produktivcode, 17 dokumentierte Abweichungen in [`rebuild/parity/deviations.md`](rebuild/parity/deviations.md) – alle bewusst (Verbesserung oder Entscheidung), keine als Fehler im Rebuild.
+Result: all parity cases from `rebuild/parity/` green, 202 tests (70 test methods, 35 of them theories) in three test projects green (2026-10-24), 853 lines of production code, 17 documented deviations in [`rebuild/parity/deviations.md`](rebuild/parity/deviations.md) – all deliberate (improvement or decision), none an error in the rebuild.
 
-## Ablauf mit dem Skill
+## How it was built with the skill
 
-### Phase 1 – Plan erzeugen (Skill `vibe-rebuild`)
+### Phase 1 – Create the plan (skill `vibe-rebuild`)
 
-Eine eigene Sitzung mit dem Skill, Eingabe: Original-Repo (nur lesend), Zielstack .NET 10, ganzer Umfang. Der Skill arbeitet in diesen Schritten; die Ergebnisse liegen in `rebuild/`:
+A separate session with the skill. Input: the original repo (read-only), target stack .NET 10, full scope. The skill works in these steps; the results are in `rebuild/`:
 
-| Schritt | Was der Skill tut | Ergebnis |
+| Step | What the skill does | Result |
 |---|---|---|
-| 1. Eingaben | fragt Repo, Zielstack (mit konkreten Optionen), Umfang und ob das Original lokal läuft – in einer Runde | Annahmen mit `[Annahme]` markiert |
-| 2. Inventar | `scripts/inventory.py` zählt Projekte, Dateien, Zeilen, Tests, vorhandene Doku | `_inventory.md` |
-| 3. Analyse | Explorer-Subagenten je Bereich, Berichte als Arbeitsmaterial, Stichprobe harter Zahlen per `grep` | `analysis.md`, `_raw/` |
-| 4. Offene Fragen | gruppiert nach architekturrelevant / fachlich / gestrichen, je mit Annahme | `open-questions.md` |
-| 5. Recherche Zielstack | drei Durchgänge: BROAD (12 Themen), DEEP (Quellcode des MCP-C#-SDK, NodaTime, Packaging, Tests), DISTILL (Entscheidungen mit Quellen) | `research.md` mit D1–D20, `_raw/research-progress.md` |
-| 6. PRD & Glossar | Verhalten mit Given/When/Then, bewusste Verbesserungen (optionales `date`), Begriffe | `PRD.md`, `GLOSSARY.md` |
-| 7. Leitplanken | Zielarchitektur mit erzwungenen Abhängigkeitsrichtungen, harte Regeln, Befehle | `CLAUDE.md` |
-| 8. Slicing | vertikale Slices nach Abhängigkeit, je mit Prompt und Definition of Done; Graph gerendert | `slices/00–04`, `_slices.json`, `slice-graph*` |
-| 9. Parity | Vergleichsfälle aus den Tests des Originals, getrennt nach Business- und Schnittstellenvertrag, mit exakten Werten | `parity/business-cases.md`, `parity/interface-cases.md`, `parity/README.md` |
-| 10. Übergabe | Einschätzung Neubau vs. Refactoring, Checkliste, Befehl `/rebuild` | Plan-README (heute diese Datei), `checklist.md`, `.claude/commands/rebuild.md` |
+| 1. Inputs | asks for the repo, target stack (with concrete options), scope, and whether the original runs locally – in one round | Assumptions marked with `[Assumption]` |
+| 2. Inventory | `scripts/inventory.py` counts projects, files, lines, tests, existing docs | `_inventory.md` |
+| 3. Analysis | explorer subagents per area, reports as working material, spot check of hard numbers with `grep` | `analysis.md`, `_raw/` |
+| 4. Open questions | grouped into architecture-relevant / business / dropped, each with an assumption | `open-questions.md` |
+| 5. Target stack research | three passes: BROAD (12 topics), DEEP (source code of the MCP C# SDK, NodaTime, packaging, tests), DISTILL (decisions with sources) | `research.md` with D1–D20, `_raw/research-progress.md` |
+| 6. PRD & glossary | behavior with Given/When/Then, deliberate improvements (optional `date`), terms | `PRD.md`, `GLOSSARY.md` |
+| 7. Guardrails | target architecture with enforced dependency directions, hard rules, commands | `CLAUDE.md` |
+| 8. Slicing | vertical slices by dependency, each with a prompt and Definition of Done; graph rendered | `slices/00–04`, `_slices.json`, `slice-graph*` |
+| 9. Parity | parity cases from the original's tests, split into business and interface contract, with exact values | `parity/business-cases.md`, `parity/interface-cases.md`, `parity/README.md` |
+| 10. Handover | assessment of rebuild vs. refactoring, checklist, `/rebuild` command | plan README (today this file), `checklist.md`, `.claude/commands/rebuild.md` |
 
-Die architekturrelevanten Fragen (Zeitzonen-Bibliothek, Verteilung) wurden vor dem Slicing entschieden: NodaTime (D3) und `dotnet tool` über `dnx` (D17).
+The architecture-relevant questions (time zone library, distribution) were decided before slicing: NodaTime (D3) and `dotnet tool` through `dnx` (D17).
 
-Einschätzung des Skills damals: Das Original ist klein (310 Zeilen), sauber und gut getestet; ein Refactoring im selben Stack lohnt kaum. Der Neubau lohnt sich für das .NET-Ökosystem (`dotnet tool` über `dnx`) und bringt zwei Verbesserungen: optionales Datum bei der Umrechnung und plattformunabhängig gleiche Zeitzonendaten durch NodaTime.
+The skill's assessment at the time: The original is small (310 lines), clean, and well tested; a refactoring in the same stack is hardly worth it. The rebuild is worth it for the .NET ecosystem (`dotnet tool` through `dnx`) and brings two improvements: an optional date on conversion, and identical time zone data on every platform through NodaTime.
 
-### Phase 2 – Rebuild umsetzen (`/rebuild`, je Slice eine frische Sitzung)
+### Phase 2 – Implement the rebuild (`/rebuild`, a fresh session per slice)
 
-Claude Code im Repo-Ordner starten und **`/rebuild`** eintippen. Der Befehl wählt die niedrigste offene Slice, deren Abhängigkeiten abgehakt sind, und arbeitet sie so ab (mit installiertem Plugin superpowers):
+Start Claude Code in the repo folder and type **`/rebuild`**. The command picks the lowest open slice whose dependencies are ticked off and works through it like this (with the superpowers plugin installed):
 
-1. **Lesen:** Slice-Datei, `CLAUDE.md`, die genannten PRD-Abschnitte, Entscheidungen in `research.md`, Vergleichsfälle und Glossar.
-2. **Worktree:** `superpowers:using-git-worktrees` legt `.claude/worktrees/slice-NN` mit Branch `slice-NN` an.
-3. **Plan:** `superpowers:writing-plans` schreibt `rebuild/plans/<Datum>-slice-NN.md` mit Tasks, Annahmen („bei Freigabe bestätigen“) und Review-Fokus. **Hier stoppt Claude** und wartet auf die Freigabe.
-4. **Umsetzen:** `superpowers:subagent-driven-development` – ein Subagent je Task, Tests zuerst (rot), dann minimal grün; nach jedem Task ein Review-Subagent, am Ende ein Gesamtreview. Jeder Task committet auf `slice-NN` (für Review-Pakete und Wiederanlauf).
-5. **Abschluss:** volle Testsuite, Definition of Done, Abweichungen in `rebuild/parity/deviations.md`, Haken in `rebuild/checklist.md`, Abweichungen vom Plan oben in der Plan-Datei.
-6. **Integration:** `superpowers:finishing-a-development-branch` – nach Rückfrage `git merge --squash` als **ein Commit pro Slice** auf `main`, danach Worktree und Branch weg.
-7. Claude endet mit drei Zeilen („Slice NN done“, „Ready next: …“, „Next step: start a fresh session and type /rebuild“). Für die nächste Slice eine neue Sitzung.
+1. **Read:** the slice file, `CLAUDE.md`, the PRD sections it names, the decisions in `research.md`, the parity cases, and the glossary.
+2. **Worktree:** `superpowers:using-git-worktrees` creates `.claude/worktrees/slice-NN` with branch `slice-NN`.
+3. **Plan:** `superpowers:writing-plans` writes `rebuild/plans/<date>-slice-NN.md` with tasks, assumptions ("confirm on approval"), and review focus. **Claude stops here** and waits for approval.
+4. **Implement:** `superpowers:subagent-driven-development` – one subagent per task, tests first (red), then minimal green; a review subagent after each task and an overall review at the end. Each task commits to `slice-NN` (for review packages and restarts).
+5. **Finish:** full test suite, Definition of Done, deviations in `rebuild/parity/deviations.md`, tick in `rebuild/checklist.md`, deviations from the plan at the top of the plan file.
+6. **Integrate:** `superpowers:finishing-a-development-branch` – after asking, `git merge --squash` as **one commit per slice** on `main`, then the worktree and branch are removed.
+7. Claude ends with three lines ("Slice NN done", "Ready next: …", "Next step: start a fresh session and type /rebuild"). Use a new session for the next slice.
 
-Ohne superpowers (oder mit `/rebuild NN direct`) läuft dasselbe ohne Worktree und Subagenten: Branch `slice-NN`, Plan vorlegen, rote Tests, Code, ein Commit.
+Without superpowers (or with `/rebuild NN direct`), the same runs without a worktree and subagents: branch `slice-NN`, present the plan, red tests, code, one commit.
 
-| Eingabe | Was passiert |
+| Input | What happens |
 |---|---|
-| `/rebuild` | nächste offene Slice, deren Abhängigkeiten erledigt sind |
-| `/rebuild 03` | genau Slice 03; fehlt eine Abhängigkeit, fragt Claude nach |
-| `/rebuild status` | Übersicht: erledigt, in Arbeit, startbereit, blockiert |
-| `/rebuild 03 direct` | ohne superpowers, auch wenn es installiert ist |
+| `/rebuild` | next open slice whose dependencies are done |
+| `/rebuild 03` | exactly slice 03; if a dependency is missing, Claude asks |
+| `/rebuild status` | overview: done, in progress, ready to start, blocked |
+| `/rebuild 03 direct` | without superpowers, even if it is installed |
 
-Nach Slice 02 waren 03 und 04 unabhängig und hätten parallel in zwei Sitzungen laufen können (`/rebuild 03`, `/rebuild 04`); in diesem Test liefen sie nacheinander.
+After slice 02, slices 03 and 04 were independent and could have run in parallel in two sessions (`/rebuild 03`, `/rebuild 04`); in this test they ran one after the other.
 
-### Was der Mensch in diesem Test entschieden hat
+### What the human decided in this test
 
-Freigaben und Entscheidungen, die nicht im Plan standen, sind in den Plan-Dateien und in `deviations.md` festgehalten, unter anderem:
+Approvals and decisions that were not in the plan are recorded in the plan files and in `deviations.md`, among them:
 
-- **Kein Verify** für Snapshots (ab v33 Sponsoring-Erklärung im Build nötig) → eigener JSON-Vergleich, D14 angepasst (Slice 00).
-- **Negative Sommerzeit** (Europe/Dublin) folgt der tzdb: Winter `is_dst: true` (Slice 02).
-- **Bereich für `date`** `0001-01-02` bis `9999-12-29`, damit keine Überläufe entstehen (Slice 03, aus einem Task-Review).
-- **Framework-abhängiges `dotnet tool`** statt self-contained, CLI-Meldungen lokalisiert, `--version` neu (Slice 04).
+- **No Verify** for snapshots (from v33 a sponsorship declaration is required in the build) → own JSON comparison, D14 adjusted (slice 00).
+- **Negative daylight saving time** (Europe/Dublin) follows the tzdb: in winter `is_dst: true` (slice 02).
+- **Range for `date`** `0001-01-02` to `9999-12-29`, so that no overflows occur (slice 03, from a task review).
+- **Framework-dependent `dotnet tool`** instead of self-contained, localized CLI messages, new `--version` (slice 04).
 
-Lücken, die der Rebuild selbst schließen musste, stehen als Befunde in `rebuild/research.md` (Abschnitte je Slice) und als „Abweichungen vom Plan“ oben in den Plan-Dateien.
+Gaps that the rebuild had to close itself are recorded as findings in `rebuild/research.md` (one section per slice) and as "Deviations from the plan" at the top of the plan files.
 
-## Bauen und testen
+## Build and test
 
-Voraussetzungen: .NET 10 SDK (`dotnet --version` 10.x); optional Node.js für den MCP Inspector.
+Prerequisites: .NET 10 SDK (`dotnet --version` 10.x); optionally Node.js for the MCP Inspector.
 
 ```bash
 dotnet build -warnaserror
-dotnet test                                  # alle Tests (Core, Protokoll, Architektur)
+dotnet test                                  # all tests (Core, protocol, architecture)
 dotnet run --project src/McpTime.Host -- --local-timezone Europe/Vienna
 dotnet pack src/McpTime.Host -c Release -o artifacts/package      # dotnet tool (D17)
-dotnet dnx Vompa.McpTime --source artifacts/package --yes -- --help   # aus dem Paket starten (`--` nötig für --help)
+dotnet dnx Vompa.McpTime --source artifacts/package --yes -- --help   # run from the package (`--` needed for --help)
 npx @modelcontextprotocol/inspector --cli dotnet run --project src/McpTime.Host --method tools/list
 dotnet format --verify-no-changes
 ```
 
-## Veröffentlichen auf nuget.org
+## Publishing to nuget.org
 
-`.github/workflows/release.yml` veröffentlicht `Vompa.McpTime` per Trusted Publishing (nuget.org-Policy `mcp-time-net-release`, ohne API-Key). Auslöser ist ein Tag `vX.Y.Z`; die Version muss in `Directory.Build.props` und in `src/McpTime.Host/.mcp/server.json` (beide Felder) gleich sein, sonst bricht der Workflow ab.
+`.github/workflows/release.yml` publishes `Vompa.McpTime` through Trusted Publishing (nuget.org policy `mcp-time-net-release`, no API key). A tag `vX.Y.Z` triggers it. The version must be identical in `Directory.Build.props` and in `src/McpTime.Host/.mcp/server.json` (both fields), otherwise the workflow fails.
 
 ```bash
 git tag v0.1.0
 git push origin v0.1.0
 ```
 
-Danach im Client: `{ "command": "dotnet", "args": ["dnx", "Vompa.McpTime", "--yes"] }` (unter Windows `dotnet` mit `dnx` als Argument, weil es nur `dnx.cmd` gibt).
+Then in the client: `{ "command": "dotnet", "args": ["dnx", "Vompa.McpTime", "--yes"] }` (on Windows, use `dotnet` with `dnx` as an argument, because only `dnx.cmd` exists).
 
-Testaufruf gegen das veröffentlichte Paket (braucht Node.js; holt `Vompa.McpTime` von nuget.org und ruft `get_current_time` auf):
+Test call against the published package (needs Node.js; fetches `Vompa.McpTime` from nuget.org and calls `get_current_time`):
 
 ```bash
 npx -y @modelcontextprotocol/inspector --cli dotnet dnx Vompa.McpTime --yes --method tools/call --tool-name get_current_time --tool-arg timezone=Europe/Vienna
 ```
 
-Erwartet: `isError: false` und unter `structuredContent` die aktuelle Zeit in Wien mit `timezone`, `datetime`, `day_of_week` und `is_dst`. Eingetippter Text in der Konsole ist kein Test: Der Server erwartet JSON-RPC von einem Client und meldet sonst einen Parse-Fehler auf stderr.
+Expected: `isError: false` and, under `structuredContent`, the current time in Vienna with `timezone`, `datetime`, `day_of_week`, and `is_dst`. Text typed into the console is not a test: The server expects JSON-RPC from a client and otherwise reports a parse error on stderr.
 
-## Wo steht was
+## Where things are
 
-| Ordner/Datei | Inhalt |
+| Folder/file | Content |
 |---|---|
-| `src/`, `tests/` | Server (Host, Server, Core) und Tests (Core, Protokoll, Architektur) |
-| `CLAUDE.md` | Regeln für Claude: Architektur, harte Regeln, Befehle (wird automatisch geladen) |
-| `.claude/commands/rebuild.md` | der Befehl `/rebuild` |
-| `rebuild/analysis.md` | Stack, Domain, Features, Schnittstellen, Tests, Legacy-Befunde des Originals |
-| `rebuild/research.md` | Zielstack-Recherche, Entscheidungen D1–D20 mit Quellen, Befunde je Slice |
-| `rebuild/open-questions.md` | offene Fragen mit Annahmen und Entscheidungen |
-| `rebuild/PRD.md`, `rebuild/GLOSSARY.md` | gewünschtes Verhalten, Verbesserungen, Begriffe |
-| `rebuild/slices/` | eine Datei je Slice: Ziel, Umfang, Prompt, Definition of Done |
-| `rebuild/plans/` | die Detailpläne aus `/rebuild`, mit Abweichungen vom Plan |
-| `rebuild/parity/` | Vergleichsfälle mit exakten Werten, Abweichungsprotokoll |
-| `rebuild/checklist.md` | Fortschritt je Slice |
-| `rebuild/slice-graph*` | Abhängigkeitsgraph der Slices |
-| `rebuild/_raw/`, `_inventory.md`, `_slices.json` | Arbeitsmaterial des Skills |
+| `src/`, `tests/` | Server (Host, Server, Core) and tests (Core, protocol, architecture) |
+| `CLAUDE.md` | Rules for Claude: architecture, hard rules, commands (loaded automatically) |
+| `.claude/commands/rebuild.md` | the `/rebuild` command |
+| `rebuild/analysis.md` | Stack, domain, features, interfaces, tests, and legacy findings of the original |
+| `rebuild/research.md` | Target stack research, decisions D1–D20 with sources, findings per slice |
+| `rebuild/open-questions.md` | open questions with assumptions and decisions |
+| `rebuild/PRD.md`, `rebuild/GLOSSARY.md` | desired behavior, improvements, terms |
+| `rebuild/slices/` | one file per slice: goal, scope, prompt, Definition of Done |
+| `rebuild/plans/` | the detailed plans from `/rebuild`, with deviations from the plan |
+| `rebuild/parity/` | parity cases with exact values, deviation log |
+| `rebuild/checklist.md` | progress per slice |
+| `rebuild/slice-graph*` | dependency graph of the slices |
+| `rebuild/_raw/`, `_inventory.md`, `_slices.json` | working material of the skill |
 
-## Slice-Abhängigkeiten
+## Slice dependencies
 
-![Slice-Abhängigkeiten](rebuild/slice-graph.png)
+![Slice dependencies](rebuild/slice-graph.png)
 
-## Annahmen gegenüber dem Original
+## Assumptions compared with the original
 
-- `convert_time` hat ein optionales `date`. Ohne `date` bleibt das Verhalten wie beim Original („heute“ in der Quellzone).
-- Fehlertexte sind neu formuliert, die Information bleibt gleich (Feld, Wert, erwartetes Format).
-- Wochentage bleiben englisch, die Zeitdifferenz bleibt ein String (`+5.75h`).
+- `convert_time` has an optional `date`. Without `date`, the behavior stays as in the original ("today" in the source zone).
+- Error texts are newly worded; the information stays the same (field, value, expected format).
+- Weekdays stay in English, and the time difference stays a string (`+5.75h`).

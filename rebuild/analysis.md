@@ -1,82 +1,82 @@
-# Analyse – mcp-time (MCP-Referenzserver „time“)
+# Analysis – mcp-time (MCP reference server "time")
 
-> Quelle: `modelcontextprotocol/servers`, Ordner `src/time` @ `51b6382`, Paketversion 2026.10.19, Lizenz MIT. 310 Zeilen Produktivcode, 4 Testdateien mit rund 1.900 Zeilen.
+> Source: `modelcontextprotocol/servers`, folder `src/time` @ `51b6382`, package version 2026.10.19, license MIT. 310 lines of production code, 4 test files with about 1,900 lines.
 
 ## Stack & runtime
 
-- Python ≥ 3.10, MCP Python SDK 2.x (`MCPServer`, high-level API), pydantic für Ergebnis-Modelle, `zoneinfo` + `tzdata` für IANA-Zeitzonen, `tzlocal` für die lokale Zeitzone.
-- Start über die Konsole (`mcp-server-time`, auch `python -m mcp_server_time`), Transport stdio. Verteilung über `uvx`, `pip` und Docker.
-- Einzige Option: `--local-timezone <IANA-Name>`.
-- Tests: pytest mit eingefrorener Uhr (freezegun), Protokolltests über einen echten MCP-Client.
+- Python ≥ 3.10, MCP Python SDK 2.x (`MCPServer`, high-level API), pydantic for result models, `zoneinfo` + `tzdata` for IANA time zones, `tzlocal` for the local time zone.
+- Started from the console (`mcp-server-time`, also `python -m mcp_server_time`), stdio transport. Distributed through `uvx`, `pip`, and Docker.
+- Only option: `--local-timezone <IANA name>`.
+- Tests: pytest with a frozen clock (freezegun), protocol tests through a real MCP client.
 
 ## Domain
 
-- **Zeitzone**: IANA-Name wie `Europe/Vienna`. Gültig ist nur der exakte Schlüssel aus der Zeitzonen-Datenbank. Kleinschreibung (`europe/warsaw`), Pfade (`../etc/passwd`, `/etc/localtime`) und unbekannte Namen werden abgelehnt.
-- **Lokale Zeitzone**: aus `--local-timezone`, sonst vom Betriebssystem erkannt, sonst `UTC`. Ein leerer Override zählt als nicht gesetzt. Ein ungültiger Override beendet den Start mit einer einzeiligen Fehlermeldung, bevor der Transport öffnet.
-- **Zeitangabe (`time`)**: 24-Stunden-Format `HH:MM`. Einstellige Stunden und Minuten werden akzeptiert (`9:5` = 09:05).
-- **Bezugstag der Umrechnung**: immer „heute“ in der Quell-Zeitzone. Ein Datum lässt sich nicht angeben.
-- **Nicht existierende Ortszeit** (Sommerzeit-Sprung, z. B. 02:30 in New York am 10.03.2024): Fehler mit Zeit, Zone und Datum.
-- **Doppeldeutige Ortszeit** (Zeitumstellung zurück, z. B. 01:30 in New York am 03.11.2024): Es gilt das erste Vorkommen, also noch Sommerzeit.
-- **Zeitdifferenz**: Offset Ziel minus Offset Quelle zum umgerechneten Zeitpunkt, in Stunden mit Vorzeichen. Ganze Stunden mit einer Nachkommastelle (`+1.0h`, `+0.0h`, `-5.0h`), Bruchteile ohne überflüssige Nullen (`+5.5h`, `+5.75h`, `-4.75h`).
-- **Ergebnis je Zeitpunkt**: Zeitzonenname wie angefragt (nicht kanonisiert), Datum/Uhrzeit ISO 8601 auf Sekunden mit Offset, englischer Wochentag, Sommerzeit-Flag.
+- **Time zone**: IANA name such as `Europe/Vienna`. Only the exact key from the time zone database is valid. Lowercase (`europe/warsaw`), paths (`../etc/passwd`, `/etc/localtime`), and unknown names are rejected.
+- **Local time zone**: from `--local-timezone`, otherwise detected from the operating system, otherwise `UTC`. An empty override counts as not set. An invalid override ends startup with a one-line error message before the transport opens.
+- **Time value (`time`)**: 24-hour format `HH:MM`. Single-digit hours and minutes are accepted (`9:5` = 09:05).
+- **Reference date of the conversion**: always "today" in the source time zone. You cannot pass a date.
+- **Skipped wall-clock time** (daylight saving jump, for example 02:30 in New York on 2024-03-10): error with time, zone, and date.
+- **Ambiguous wall-clock time** (clock set back, for example 01:30 in New York on 2024-11-03): the first occurrence applies, so still daylight saving time.
+- **Time difference**: target offset minus source offset at the converted moment, in hours with a sign. Whole hours with one decimal place (`+1.0h`, `+0.0h`, `-5.0h`), fractions without superfluous zeros (`+5.5h`, `+5.75h`, `-4.75h`).
+- **Result per moment**: time zone name as requested (not canonicalized), date/time in ISO 8601 to the second with offset, English weekday, daylight saving flag.
 
 ## Features
 
-| Tool | Zweck | Eingabe | Ergebnis |
+| Tool | Purpose | Input | Result |
 |---|---|---|---|
-| `get_current_time` | aktuelle Zeit in einer Zeitzone | `timezone` | `{timezone, datetime, day_of_week, is_dst}` |
-| `convert_time` | Ortszeit von einer Zone in eine andere umrechnen | `source_timezone`, `time`, `target_timezone` | `{source, target, time_difference}` |
+| `get_current_time` | current time in a time zone | `timezone` | `{timezone, datetime, day_of_week, is_dst}` |
+| `convert_time` | convert a wall-clock time from one zone to another | `source_timezone`, `time`, `target_timezone` | `{source, target, time_difference}` |
 
-Beide Tools sind rein lesend: `readOnlyHint` true, `destructiveHint` false, `idempotentHint` true, `openWorldHint` false.
-Die Parameterbeschreibungen nennen die erkannte lokale Zeitzone, damit ein Modell sie als Standard verwendet, wenn der Nutzer keine nennt.
+Both tools are read-only: `readOnlyHint` true, `destructiveHint` false, `idempotentHint` true, `openWorldHint` false.
+The parameter descriptions name the detected local time zone, so that a model uses it as the default when the user names none.
 
 ## Interfaces
 
-- **Server**: Name `mcp-time`, Version aus der Paketversion. Keine Prompts, keine Ressourcen, keine List-Change-Benachrichtigungen.
-- **Protokoll**: beide Spec-Generationen. 2025-11-25 per `initialize`-Handshake (inklusive `ping`), 2026-07-28 sitzungslos per `server/discover` oder Request-Envelope. Die Tool-Liste ist in beiden identisch.
-- **Ergebnisform**: `structuredContent` mit dem Ergebnisobjekt plus ein Textblock mit demselben Objekt als eingerücktes JSON. Jedes Tool veröffentlicht ein `outputSchema`.
-- **Fehler**:
-  - Fachfehler sind Tool-Ergebnisse mit `isError: true`: ungültige Zeitzone, falsches Zeitformat, leeres Pflichtfeld („Missing required argument: …“), nicht existierende Ortszeit.
-  - Ein unbekanntes Tool ist ein JSON-RPC-Fehler `-32602` „Unknown tool: …“.
-  - Unbekannte zusätzliche Argumente werden ignoriert.
-- **CLI**: `--help` beschreibt den Server, unbekannte Argumente werden abgelehnt, `--local-timezone` wird vor dem Start geprüft.
+- **Server**: name `mcp-time`, version from the package version. No prompts, no resources, no list-changed notifications.
+- **Protocol**: both spec generations. 2025-11-25 through the `initialize` handshake (including `ping`), 2026-07-28 sessionless through `server/discover` or a request envelope. The tool list is identical in both.
+- **Result shape**: `structuredContent` with the result object plus a text block with the same object as indented JSON. Each tool publishes an `outputSchema`.
+- **Errors**:
+  - Business errors are tool results with `isError: true`: invalid time zone, wrong time format, empty required field ("Missing required argument: …"), skipped wall-clock time.
+  - An unknown tool is a JSON-RPC error `-32602` "Unknown tool: …".
+  - Unknown additional arguments are ignored.
+- **CLI**: `--help` describes the server, unknown arguments are rejected, `--local-timezone` is checked before startup.
 
 ## Non-functional
 
-- Deterministisch bis auf „jetzt“. Tests frieren die Uhr ein.
-- Keine Netzwerkzugriffe, keine Dateizugriffe außer der Zeitzonen-Datenbank.
-- Plattformunterschiede bewusst eingeebnet: Zeitzonen-Schlüssel werden auf allen Systemen gleich streng geprüft (Issue #5060, macOS akzeptierte Kleinschreibung).
-- Fehlermeldungen beim Start zeigen keine Dateipfade.
+- Deterministic except for "now". Tests freeze the clock.
+- No network access, no file access except the time zone database.
+- Platform differences deliberately levelled out: time zone keys are checked equally strictly on all systems (issue #5060, macOS accepted lowercase).
+- Error messages at startup show no file paths.
 
 ## Existing tests
 
-- `test_server.py`: Fachlogik mit eingefrorener Uhr: aktuelle Zeit in mehreren Zonen und Jahreszeiten, Umrechnungen mit erwarteter Differenz, Fehlerfälle. → Business-Vertrag.
-- `test_protocol.py`: über einen echten MCP-Client. Geprüft werden:
-  - Server-Info, Tool-Liste mit Ein- und Ausgabeschemas
-  - Ergebnisform
-  - Zeitzonen über Datumsgrenze und Sommerzeit
-  - Viertelstunden-Offsets
-  - nicht existierende und doppeldeutige Zeiten
-  - Argumentprüfung
-  - Verhalten der lokalen Zeitzone
+- `test_server.py`: business logic with a frozen clock: current time in several zones and seasons, conversions with the expected difference, error cases. → Business contract.
+- `test_protocol.py`: through a real MCP client. It checks:
+  - server info, tool list with input and output schemas
+  - result shape
+  - time zones across the date boundary and daylight saving time
+  - quarter-hour offsets
+  - skipped and ambiguous times
+  - argument validation
+  - behavior of the local time zone
 
-  → Business- und Schnittstellen-Vertrag.
-- `test_eras.py`: beide Protokollgenerationen, Fehler in beiden, unbekanntes Tool und unbekannte Methode als JSON-RPC-Fehler, `ping` nur in der alten Generation. → Schnittstellen-Vertrag.
-- `test_entrypoints.py`: CLI-Optionen, Start über stdio, ungültige lokale Zeitzone. → Schnittstellen-Vertrag, teilweise Python-spezifisch (`python -m`).
-- **Implementierungsgebunden**:
-  - Wortlaut der Python-Fehlermeldungen von `zoneinfo` („ZoneInfo keys must refer to subdirectories of TZPATH …“)
-  - Pydantic-Titel im Schema („Day Of Week“)
-  - Python-Einstiegspunkte
+  → Business and interface contract.
+- `test_eras.py`: both protocol generations, errors in both, unknown tool and unknown method as JSON-RPC errors, `ping` only in the old generation. → Interface contract.
+- `test_entrypoints.py`: CLI options, start over stdio, invalid local time zone. → Interface contract, partly Python-specific (`python -m`).
+- **Implementation-bound**:
+  - Wording of the Python error messages from `zoneinfo` ("ZoneInfo keys must refer to subdirectories of TZPATH …")
+  - Pydantic titles in the schema ("Day Of Week")
+  - Python entry points
 
 ## Legacy findings
 
-- Kein Datum bei der Umrechnung: Es wird immer „heute“ in der Quellzone angenommen. Termine an einem anderen Tag rechnet das Modell daher mit dem falschen Offset um, sobald eine Zeitumstellung dazwischenliegt.
-- Fehlertexte enthalten Python-Interna (Fehlerklassen-Wortlaut, `repr` mit Anführungszeichen).
-- Schema-Titel aus pydantic-Klassennamen („Is Dst“) sind ein Nebenprodukt, kein bewusster Vertrag.
-- Die Middleware für unbekannte Tools umgeht einen SDK-Mangel (python-sdk#3659) und soll entfallen, sobald das SDK es selbst kann.
-- Wochentage nur auf Englisch, Zeitdifferenz als String statt als Zahl.
-- Sonst sauber: kleine Dateien, eine Verantwortung je Funktion, gut getestet.
+- No date on conversion: "today" in the source zone is always assumed. For appointments on another day, the model therefore converts with the wrong offset whenever a clock change lies in between.
+- Error texts contain Python internals (error class wording, `repr` with quotation marks).
+- Schema titles from pydantic class names ("Is Dst") are a by-product, not a deliberate contract.
+- The middleware for unknown tools works around an SDK shortcoming (python-sdk#3659) and should go once the SDK handles it itself.
+- Weekdays in English only, time difference as a string instead of a number.
+- Otherwise clean: small files, one responsibility per function, well tested.
 
 ## Open questions
 
-Siehe `open-questions.md`.
+See `open-questions.md`.

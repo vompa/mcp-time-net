@@ -1,24 +1,24 @@
-# Parity – Schnittstellen-Vertrag (für Kompatibilität halten)
+# Parity – interface contract (keep compatible)
 
-Jeder Fall wird ein Abnahmetest: Ein MCP-Client startet den Rebuild per stdio und prüft die Antwort gegen die Werte hier.
+Each case becomes an acceptance test: An MCP client starts the rebuild over stdio and checks the response against the values here.
 
-| ID | Prüfung | Erwartet |
+| ID | Check | Expected |
 |---|---|---|
-| I-INIT-1 | `initialize` mit 2025-11-25 | Server-Name `mcp-time`, Version gesetzt, Fähigkeit `tools`; `ping` wird beantwortet |
-| I-INIT-2 | sitzungslose Anfrage mit 2026-07-28 | Antwort in der neuen Generation; `ping` nicht angeboten |
-| I-LIST-1 | `tools/list` (beide Generationen) | genau `get_current_time`, `convert_time`, gleiche Reihenfolge, gleich in beiden Generationen |
-| I-LIST-2 | Eingabeschema `get_current_time` | Pflichtfeld `timezone` (string) |
-| I-LIST-3 | Eingabeschema `convert_time` | Pflichtfelder `source_timezone`, `time`, `target_timezone` (string); optional `date` (string, neu) |
-| I-LIST-4 | Ausgabeschemas | `TimeResult` mit Pflichtfeldern `timezone`, `datetime`, `day_of_week` (string), `is_dst` (boolean); `TimeConversionResult` mit `source`, `target`, `time_difference` |
-| I-LIST-5 | Annotations beider Tools | readOnly true, destructive false, idempotent true, openWorld false |
-| I-LIST-6 | Parameterbeschreibungen mit `--local-timezone Europe/Vienna` | nennen `Europe/Vienna` als Standard |
-| I-LIST-7 | `prompts/list`, `resources/list` | leer bzw. nicht angeboten |
-| I-RES-1 | erfolgreicher Tool-Aufruf | `structuredContent` = Ergebnisobjekt; ein Textblock mit demselben Objekt als JSON; `isError` false |
-| I-ERR-1 | `tools/call` mit `no_such_tool` | JSON-RPC-Fehler `-32602`, Meldung enthält `no_such_tool` |
-| I-ERR-2 | unbekannte Methode | JSON-RPC-Fehler (Methode nicht gefunden) |
-| I-ERR-3 | Fachfehler | Tool-Ergebnis mit `isError: true`, kein JSON-RPC-Fehler |
-| I-ERR-4 | zusätzliches unbekanntes Argument | wird ignoriert, Aufruf gelingt |
-| I-CLI-1 | `--local-timezone Not/AZone` | Exit ≠ 0, genau eine Zeile auf stderr mit dem Wert, kein Stacktrace, kein Pfad |
-| I-CLI-2 | `--help` | beschreibt den Server und die Option |
-| I-CLI-3 | unbekannte Option | Exit ≠ 0 mit Hinweis |
-| I-LOG-1 | stdout während des Betriebs | ausschließlich JSON-RPC-Nachrichten |
+| I-INIT-1 | `initialize` with 2025-11-25 | Server name `mcp-time`, version set, capability `tools`; `ping` is answered |
+| I-INIT-2 | sessionless request with 2026-07-28 | Response in the new generation; `ping` not offered |
+| I-LIST-1 | `tools/list` (both generations) | exactly `get_current_time`, `convert_time`, same order, same in both generations |
+| I-LIST-2 | Input schema `get_current_time` | Required field `timezone` (string) |
+| I-LIST-3 | Input schema `convert_time` | Required fields `source_timezone`, `time`, `target_timezone` (string); optional `date` (string, new) |
+| I-LIST-4 | Output schemas | `TimeResult` with required fields `timezone`, `datetime`, `day_of_week` (string), `is_dst` (boolean); `TimeConversionResult` with `source`, `target`, `time_difference` |
+| I-LIST-5 | Annotations of both tools | readOnly true, destructive false, idempotent true, openWorld false |
+| I-LIST-6 | Parameter descriptions with `--local-timezone Europe/Vienna` | name `Europe/Vienna` as the default |
+| I-LIST-7 | `prompts/list`, `resources/list` | empty or not offered |
+| I-RES-1 | successful tool call | `structuredContent` = result object; one text block with the same object as JSON; `isError` false |
+| I-ERR-1 | `tools/call` with `no_such_tool` | JSON-RPC error `-32602`, message contains `no_such_tool` |
+| I-ERR-2 | unknown method | JSON-RPC error (method not found) |
+| I-ERR-3 | business error | Tool result with `isError: true`, no JSON-RPC error |
+| I-ERR-4 | additional unknown argument | is ignored, the call succeeds |
+| I-CLI-1 | `--local-timezone Not/AZone` | Exit ≠ 0, exactly one line on stderr with the value, no stack trace, no path |
+| I-CLI-2 | `--help` | describes the server and the option |
+| I-CLI-3 | unknown option | Exit ≠ 0 with a hint |
+| I-LOG-1 | stdout during operation | JSON-RPC messages only |

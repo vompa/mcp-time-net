@@ -1,74 +1,74 @@
-# PRD – mcp-time (Rebuild auf .NET 10)
+# PRD – mcp-time (rebuild on .NET 10)
 
-> Beschreibt das Was, nicht das Wie. Begriffe: `GLOSSARY.md`. Erwartete Werte mit Quelle: `parity/`.
-> Rangfolge bei Widersprüchen in der Analyse: Tests > Code > README.
+> Describes the what, not the how. Terms: `GLOSSARY.md`. Expected values with their source: `parity/`.
+> Precedence when the analysis contradicts itself: tests > code > README.
 
-## Zweck
+## Purpose
 
-Ein kleiner lokaler MCP-Server, der einem KI-Modell zwei Fähigkeiten gibt: die aktuelle Uhrzeit in einer beliebigen Zeitzone nennen und eine Uhrzeit zwischen Zeitzonen umrechnen, korrekt über Sommerzeit, Viertelstunden-Offsets und Datumsgrenzen hinweg.
+A small local MCP server that gives an AI model two abilities: report the current time in any time zone, and convert a time between time zones. Both are correct across daylight saving time, quarter-hour offsets, and date boundaries.
 
-## Prinzipien
+## Principles
 
-- **P1 Fachlich korrekt vor allem anderen.** Offsets, Sommerzeit-Flags und Wochentage gelten für den tatsächlichen Zeitpunkt in der jeweiligen Zone.
-- **P2 Kompatibel für Aufrufer.** Tool-Namen, Parameter, Ergebnisfelder und Annotations bleiben gleich, damit bestehende Clients und Prompts weiter funktionieren.
-- **P3 Strenge Eingaben, klare Fehler.** Nur exakte IANA-Namen, auf allen Plattformen gleich. Fehlertexte nennen, was falsch ist, ohne Interna.
-- **P4 Rein lesend und lokal.** Kein Netzwerk, keine Dateien außer der Zeitzonen-Datenbank. stdout gehört nur dem MCP-Transport.
-- **P5 Testbar ohne echte Uhr.** „Jetzt“ kommt aus einer austauschbaren Zeitquelle.
+- **P1 Correct above all else.** Offsets, daylight saving flags, and weekdays apply to the actual moment in each zone.
+- **P2 Compatible for callers.** Tool names, parameters, result fields, and annotations stay the same, so existing clients and prompts keep working.
+- **P3 Strict input, clear errors.** Only exact IANA names, the same on all platforms. Error texts say what is wrong, without internals.
+- **P4 Read-only and local.** No network, no files except the time zone database. stdout belongs only to the MCP transport.
+- **P5 Testable without a real clock.** "Now" comes from a replaceable time source.
 
-## Nutzer
+## Users
 
-| Rolle | Typische Aufgaben |
+| Role | Typical tasks |
 |---|---|
-| KI-Modell (über einen MCP-Client) | „Wie spät ist es in Tokio?“, „Was ist 14:00 Wien in New York?“ |
-| Betreiber | Server installieren, lokale Zeitzone bei Bedarf überschreiben |
+| AI model (through an MCP client) | "What time is it in Tokyo?", "What is 14:00 Vienna in New York?" |
+| Operator | Install the server, override the local time zone if needed |
 
 ## Features
 
-### F1 Server & Protokoll
-**Story**: Als MCP-Client will ich mich verbinden und die Tools mit Schemas sehen, egal welche Protokollgeneration ich spreche.
-- AC1 Given ein Client mit 2025-11-25, When `initialize`, Then Server-Info `mcp-time` mit Version, Fähigkeit `tools`, keine Prompts und Ressourcen.
-- AC2 Given ein Client mit 2026-07-28, When er sitzungslos anfragt, Then dieselbe Tool-Liste wie in AC1.
-- AC3 When `tools/list`, Then genau `get_current_time` und `convert_time`, jeweils mit Eingabe- und Ausgabeschema und den Annotations readOnly true, destructive false, idempotent true, openWorld false.
-- AC4 Given ein Aufruf von `no_such_tool`, Then JSON-RPC-Fehler `-32602` mit dem Toolnamen in der Meldung.
-- AC5 Die Parameterbeschreibungen nennen die lokale Zeitzone als Standard, wenn der Nutzer keine angibt.
+### F1 Server & protocol
+**Story**: As an MCP client, I want to connect and see the tools with their schemas, whichever protocol generation I speak.
+- AC1 Given a client with 2025-11-25, When `initialize`, Then server info `mcp-time` with a version, capability `tools`, no prompts and no resources.
+- AC2 Given a client with 2026-07-28, When it makes a sessionless request, Then the same tool list as in AC1.
+- AC3 When `tools/list`, Then exactly `get_current_time` and `convert_time`, each with an input schema, an output schema, and the annotations readOnly true, destructive false, idempotent true, openWorld false.
+- AC4 Given a call to `no_such_tool`, Then JSON-RPC error `-32602` with the tool name in the message.
+- AC5 The parameter descriptions name the local time zone as the default when the user gives none.
 
-### F2 Aktuelle Zeit
-**Story**: Als Modell will ich die aktuelle Zeit in einer Zeitzone erfahren, damit ich Zeitfragen richtig beantworte.
-- AC1 Given „jetzt“ = 2024-01-01 12:00:00Z, When `get_current_time{timezone:"UTC"}`, Then `{timezone:"UTC", datetime:"2024-01-01T12:00:00+00:00", day_of_week:"Monday", is_dst:false}` als `structuredContent` und als JSON-Textblock.
-- AC2 Sommerzeit, Viertelstunden-Offsets und Datumsgrenze laut `parity/business-cases.md` B-NOW.
-- AC3 Der Zeitzonenname kommt so zurück, wie er angefragt wurde.
-- AC4 Fehlt `timezone` oder ist es leer, Then `isError` mit „Missing required argument: timezone“. Die lokale Zeitzone wird hier **nicht** stillschweigend eingesetzt.
-- AC5 Unbekannter Name, falsche Groß-/Kleinschreibung oder Pfad, Then `isError`. Der Text nennt „Invalid timezone“ und den Wert.
-- Zusätzliche, unbekannte Argumente werden ignoriert.
+### F2 Current time
+**Story**: As a model, I want to learn the current time in a time zone, so that I answer time questions correctly.
+- AC1 Given "now" = 2024-01-01 12:00:00Z, When `get_current_time{timezone:"UTC"}`, Then `{timezone:"UTC", datetime:"2024-01-01T12:00:00+00:00", day_of_week:"Monday", is_dst:false}` as `structuredContent` and as a JSON text block.
+- AC2 Daylight saving time, quarter-hour offsets, and the date boundary as in `parity/business-cases.md` B-NOW.
+- AC3 The time zone name comes back as it was requested.
+- AC4 If `timezone` is missing or empty, Then `isError` with "Missing required argument: timezone". The local time zone is **not** silently substituted here.
+- AC5 Unknown name, wrong letter case, or path, Then `isError`. The text contains "Invalid timezone" and the value.
+- Additional, unknown arguments are ignored.
 
-### F3 Zeit umrechnen
-**Story**: Als Modell will ich eine Uhrzeit von einer Zone in eine andere umrechnen.
-- AC1 Given „jetzt“ = 2024-01-01 00:00Z, When `convert_time{source_timezone:"Europe/London", time:"12:00", target_timezone:"Europe/Warsaw"}`, Then Ziel `2024-01-01T13:00:00+01:00`, `time_difference:"+1.0h"`.
-- AC2 Bezugstag ist „heute“ in der Quellzone (z. B. 20:00Z ist in Tokio schon Dienstag). Mit dem neuen optionalen `date` gilt stattdessen dieses Datum (siehe Verbesserungen).
-- AC3 Differenzformat: ganze Stunden mit einer Nachkommastelle, Bruchteile ohne überflüssige Nullen (`+5.75h`, `+5.5h`, `-4.75h`, `+0.0h`).
-- AC4 Nicht existierende Ortszeit (02:30 New York am 2024-03-10), Then `isError`. Der Text nennt Zeit, Zone, Datum und „skipped by a clock change“.
-- AC5 Doppeldeutige Ortszeit (01:30 New York am 2024-11-03), Then erstes Vorkommen (Sommerzeit, -04:00), Differenz zu UTC `+4.0h`.
-- AC6 `time` im Format `H:M` bis `HH:MM` (24 h). Alles andere, Then `isError` „Invalid time format. Expected HH:MM [24-hour format]“.
-- AC7 Leere Quell- oder Zielzone, Then „Missing required argument: source_timezone“ bzw. „… target_timezone“.
+### F3 Convert time
+**Story**: As a model, I want to convert a time from one zone to another.
+- AC1 Given "now" = 2024-01-01 00:00Z, When `convert_time{source_timezone:"Europe/London", time:"12:00", target_timezone:"Europe/Warsaw"}`, Then target `2024-01-01T13:00:00+01:00`, `time_difference:"+1.0h"`.
+- AC2 The reference date is "today" in the source zone (for example, 20:00Z is already Tuesday in Tokyo). With the new optional `date`, that date applies instead (see improvements).
+- AC3 Difference format: whole hours with one decimal place, fractions without superfluous zeros (`+5.75h`, `+5.5h`, `-4.75h`, `+0.0h`).
+- AC4 Skipped wall-clock time (02:30 New York on 2024-03-10), Then `isError`. The text names the time, zone, date, and "skipped by a clock change".
+- AC5 Ambiguous wall-clock time (01:30 New York on 2024-11-03), Then first occurrence (daylight saving time, -04:00), difference to UTC `+4.0h`.
+- AC6 `time` in the format `H:M` to `HH:MM` (24 h). Anything else, Then `isError` "Invalid time format. Expected HH:MM [24-hour format]".
+- AC7 Empty source or target zone, Then "Missing required argument: source_timezone" or "… target_timezone".
 
-### F4 Start & lokale Zeitzone
-- AC1 `--local-timezone Europe/Vienna` überschreibt die erkannte Zone, die Parameterbeschreibungen nennen sie.
-- AC2 Ungültiger Wert, Then der Prozess endet vor dem Transport mit genau einer Zeile auf stderr: `Error: invalid --local-timezone '<wert>': not a known IANA timezone name`, Exit-Code ≠ 0.
-- AC3 Leerer Wert zählt als nicht gesetzt. Ist die Systemzone nicht ermittelbar, gilt `UTC`.
-- AC4 `--help` beschreibt den Server, unbekannte Optionen werden abgelehnt.
+### F4 Start & local time zone
+- AC1 `--local-timezone Europe/Vienna` overrides the detected zone, and the parameter descriptions name it.
+- AC2 Invalid value, Then the process ends before the transport with exactly one line on stderr: `Error: invalid --local-timezone '<value>': not a known IANA timezone name`, exit code ≠ 0.
+- AC3 An empty value counts as not set. If the system zone cannot be determined, `UTC` applies.
+- AC4 `--help` describes the server, and unknown options are rejected.
 
-## API (Vertrag)
+## API (contract)
 
-MCP über stdio, beide Protokollgenerationen. Tools, Parameter und Ergebnisfelder wie in `analysis.md` → Features/Interfaces. Fachfehler als Tool-Ergebnis mit `isError`, unbekanntes Tool als JSON-RPC `-32602`. Beschreibungstexte formuliert der Rebuild selbst. Sie müssen Zweck, Formate und den Standard der lokalen Zeitzone nennen.
+MCP over stdio, both protocol generations. Tools, parameters, and result fields as in `analysis.md` → Features/Interfaces. Business errors as a tool result with `isError`, unknown tool as JSON-RPC `-32602`. The rebuild writes the description texts itself. They must state the purpose, the formats, and the local time zone default.
 
-## Verbesserungen mit Absicht
+## Improvements on purpose
 
-- **Optionales `date` (YYYY-MM-DD) bei `convert_time`.** Termine an anderen Tagen werden mit dem richtigen Offset umgerechnet. Ohne `date` gilt das bisherige Verhalten, das ist also rückwärtskompatibel.
-- **Eigene, klare Fehlertexte** ohne Python-Interna. Die Information bleibt gleich (Parity prüft Inhalt, nicht Wortlaut).
-- **Schema-Titel bewusst gewählt** statt Nebenprodukt aus Klassennamen.
-- **Unbekanntes Tool** direkt über das SDK, ohne Middleware-Krücke.
-- Weitere Verbesserungen aus der Zielstack-Recherche: siehe `research.md` → Entscheidungen.
+- **Optional `date` (YYYY-MM-DD) on `convert_time`.** Appointments on other days are converted with the correct offset. Without `date`, the previous behavior applies, so this is backward compatible.
+- **Own, clear error texts** without Python internals. The information stays the same (parity checks content, not wording).
+- **Schema titles chosen deliberately** instead of a by-product of class names.
+- **Unknown tool** handled directly by the SDK, without a middleware workaround.
+- Further improvements from the target stack research: see `research.md` → Decisions.
 
 ## Non-goals
 
-- Weitere Tools (Kalender, Feiertage, Weltzeituhr), lokalisierte Wochentage, HTTP-Transport.
+- More tools (calendar, holidays, world clock), localized weekdays, HTTP transport.

@@ -1,19 +1,19 @@
-# Slice 02 – Zeitzonen & aktuelle Zeit
+# Slice 02 – Time zones & current time
 
-**Goal:** get_current_time liefert für jede gültige IANA-Zone die richtige Zeit, lehnt alles andere klar ab.
+**Goal:** get_current_time returns the correct time for every valid IANA zone and clearly rejects everything else.
 **PRD reference:** F2
 **Depends on:** 01
 
 ## Scope
-- TimeZoneName: exakte IANA-Schlüssel, gleich streng auf allen Plattformen, Pfade abgelehnt
-- TimeResult: ISO 8601 mit Offset, englischer Wochentag, Sommerzeit-Flag
-- Ergebnisform: structuredContent plus JSON-Textblock
-- Fachfehler als isError mit klarer Information
+- TimeZoneName: exact IANA keys, equally strict on all platforms, paths rejected
+- TimeResult: ISO 8601 with offset, English weekday, daylight saving flag
+- Result shape: structuredContent plus JSON text block
+- Business errors as isError with clear information
 
 ## Prompt
 ```
 Read CLAUDE.md, rebuild/GLOSSARY.md, rebuild/research.md and the rebuild/PRD.md sections "F2".
-Implement slice 02 "Zeitzonen & aktuelle Zeit" (this file).
+Implement slice 02 "Time zones & current time" (this file).
 0. If this slice needs a library or pattern research.md does not cover,
    look up its current documentation first and add the findings to rebuild/research.md.
 1. First present a plan (files, classes, tests) and wait for approval.
@@ -30,4 +30,4 @@ Implement slice 02 "Zeitzonen & aktuelle Zeit" (this file).
 - [ ] No dead code, no TODOs without an issue
 
 ## Non-goals
-Umrechnung, CLI
+Conversion, CLI

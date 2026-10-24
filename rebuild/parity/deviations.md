@@ -1,23 +1,23 @@
-# Deviation-Log
+# Deviation log
 
-Urteil: Fehler im Rebuild / Verbesserung mit Absicht (+ PRD-Verweis).
+Verdict: bug in the rebuild / improvement on purpose (+ PRD reference).
 
-| Fall | Original (laut Analyse) | Rebuild | Urteil |
+| Case | Original (per the analysis) | Rebuild | Verdict |
 |---|---|---|---|
-| `convert_time` mit Datum | kein `date`, immer „heute“ | optionales `date` (B-NEW-1..3) | Verbesserung mit Absicht, PRD „Verbesserungen“ |
-| Fehlertext ungültige Zeitzone | Python-Wortlaut („No time zone found with key '…'“) | eigener Text mit „Invalid timezone“ und Wert | Verbesserung mit Absicht |
-| Schema-Titel | aus pydantic-Klassennamen („Is Dst“) | bewusst gewählt | Verbesserung mit Absicht |
-| Fehlertext fehlendes Argument (B-ERR-1/2) | „Missing required argument: timezone“ | gleicher Anfang plus Formathinweis „Expected an IANA time zone name such as 'Europe/Vienna'.“ | Verbesserung mit Absicht, PRD „Eigene, klare Fehlertexte“ |
-| `is_dst` bei negativer Sommerzeit (Europe/Dublin) | vermutlich `bool(dst())` aus tzdata, nicht durch Tests belegt | tzdb-Savings ≠ 0: Winter `true` (Savings −01:00), Sommer `false`; Test `NegativeSavingsCountAsDaylightSavingTime` | bewusst so (User, 2026-10-24, Plan Slice 02 Annahme 1): folgt der tzdb und dem irischen Recht, widerspricht aber dem Alltagsverständnis |
-| Bereich für `date` | – (kein `date` im Original) | nur `0001-01-02` bis `9999-12-29`, sonst „Invalid date“ mit Format und Bereich; `null` oder `""` = heute in der Quellzone | Verbesserung mit Absicht (Plan Slice 03 Annahme 2, Obergrenze per Task-Review): verhindert Überlauf und damit einen generischen SDK-Fehler |
-| Offsets mit Sekundenanteil (historische Ortszeit) | – (ohne `date` nicht erreichbar) | voll ausgegeben, z. B. `1850-01-01T12:00:00+01:05:21`; sonst `+HH:MM` | Verbesserung mit Absicht (Plan Slice 03 Annahme 3), wie Python `isoformat`; nicht RFC 3339 |
-| Fehlertexte `convert_time` (B-ERR-6, B-EDGE-2, B-NEW-2) | Python-Wortlaut | eigene Texte: „Invalid time format. Expected HH:MM [24-hour format] …“ mit Wert, „Invalid date …“ mit Format und Bereich, übersprungene Ortszeit mit Zeit, Zone, Datum und „skipped by a clock change“, „Missing required argument: time …“ | Verbesserung mit Absicht, PRD „Eigene, klare Fehlertexte“ |
-| Mehrere ungültige Argumente | nicht festgelegt | nur der erste Fehler in der Reihenfolge `source_timezone`, `time`, `target_timezone`, `date` | bewusst so (Plan Slice 03), Test `FirstInvalidArgumentWinsAsync` |
-| Zeitformat | `H:M` bis `HH:MM` | gleich, aber nur ASCII-Ziffern, keine Leerzeichen, kein abschließender Zeilenumbruch | Verbesserung mit Absicht (Plan Slice 03 Annahme 1) |
-| Kommandozeilen-Meldungen (I-CLI-2, I-CLI-3) | englische Meldungen des Python-Parsers | `--help` und Parse-Fehler von System.CommandLine in der UI-Sprache des Systems; nur die Fehlerzeile zu `--local-timezone` ist fest englisch (PRD F4 AC2) | bewusst so (Plan Slice 04 Annahme 4) |
-| `--version` | – | gibt die Version aus (System.CommandLine eingebaut) | Verbesserung mit Absicht (Plan Slice 04 Annahme 4) |
-| Erkennung der lokalen Zone unter Windows | `tzlocal` | Windows-ID per ICU mit Region des Systems (`W. Europe Standard Time` in AT → `Europe/Vienna`), sonst ohne Region, sonst `UTC` | Verbesserung mit Absicht (Plan Slice 04 Annahme 3) |
-| `--local-timezone` mit Steuerzeichen oder `@datei` | nicht festgelegt | Steuerzeichen als `\uXXXX` in der Fehlerzeile; Response-Files aus, `@…` ist ein normaler (ungültiger) Wert | bewusst so (Plan Slice 04 Annahme 6, Gesamtreview) |
-| Verteilung | Python-Paket, `uvx mcp-server-time` | framework-abhängiges `dotnet tool` `Vompa.McpTime` mit `.mcp/server.json`, Start per `dotnet dnx`; noch nicht veröffentlicht | Entscheidung D17, Plan Slice 04 Annahme 8 |
-| Konfiguration aus dem Arbeitsverzeichnis | – | keine `appsettings*.json`, nur Umgebungsvariablen | bewusst so (Gesamtreview Slice 04): Clients starten das Tool in beliebigen Ordnern |
-| Nicht-String-Wert für `timezone` (z. B. `42`) | im Original durch pydantic abgelehnt, Wortlaut nicht im Vertrag | `isError` „Invalid timezone“ mit dem rohen JSON-Wert; JSON `null` zählt als fehlend | Verbesserung mit Absicht (Plan Slice 02 Annahme 3) |
+| `convert_time` with a date | no `date`, always "today" | optional `date` (B-NEW-1..3) | improvement on purpose, PRD "Improvements on purpose" |
+| Error text for an invalid time zone | Python wording ("No time zone found with key '…'") | own text with "Invalid timezone" and the value | improvement on purpose |
+| Schema title | from the pydantic class names ("Is Dst") | chosen deliberately | improvement on purpose |
+| Error text for a missing argument (B-ERR-1/2) | "Missing required argument: timezone" | same start plus a format hint "Expected an IANA time zone name such as 'Europe/Vienna'." | improvement on purpose, PRD "Own, clear error texts" |
+| `is_dst` for negative daylight saving time (Europe/Dublin) | probably `bool(dst())` from tzdata, not proven by tests | tzdb savings ≠ 0: winter `true` (savings −01:00), summer `false`; test `NegativeSavingsCountAsDaylightSavingTime` | deliberate (user, 2026-10-24, plan slice 02, assumption 1): follows the tzdb and Irish law, but contradicts everyday understanding |
+| Range for `date` | – (no `date` in the original) | only `0001-01-02` to `9999-12-29`, otherwise "Invalid date" with format and range; `null` or `""` = today in the source zone | improvement on purpose (plan slice 03, assumption 2, upper limit by task review): prevents an overflow and with it a generic SDK error |
+| Offsets with a seconds part (historical local time) | – (not reachable without `date`) | printed in full, e.g. `1850-01-01T12:00:00+01:05:21`; otherwise `+HH:MM` | improvement on purpose (plan slice 03, assumption 3), like Python `isoformat`; not RFC 3339 |
+| Error texts of `convert_time` (B-ERR-6, B-EDGE-2, B-NEW-2) | Python wording | own texts: "Invalid time format. Expected HH:MM [24-hour format] …" with the value, "Invalid date …" with format and range, skipped wall-clock time with time, zone, date and "skipped by a clock change", "Missing required argument: time …" | improvement on purpose, PRD "Own, clear error texts" |
+| Several invalid arguments | not defined | only the first error, in the order `source_timezone`, `time`, `target_timezone`, `date` | deliberate (plan slice 03), test `FirstInvalidArgumentWinsAsync` |
+| Time format | `H:M` to `HH:MM` | same, but ASCII digits only, no spaces, no trailing line break | improvement on purpose (plan slice 03, assumption 1) |
+| Command-line messages (I-CLI-2, I-CLI-3) | English messages of the Python parser | `--help` and parse errors from System.CommandLine in the UI language of the system; only the error line for `--local-timezone` is fixed English (PRD F4 AC2) | deliberate (plan slice 04, assumption 4) |
+| `--version` | – | prints the version (built into System.CommandLine) | improvement on purpose (plan slice 04, assumption 4) |
+| Detection of the local zone on Windows | `tzlocal` | Windows ID via ICU with the region of the system (`W. Europe Standard Time` in AT → `Europe/Vienna`), otherwise without region, otherwise `UTC` | improvement on purpose (plan slice 04, assumption 3) |
+| `--local-timezone` with control characters or `@file` | not defined | control characters as `\uXXXX` in the error line; response files off, `@…` is a normal (invalid) value | deliberate (plan slice 04, assumption 6, final review) |
+| Distribution | Python package, `uvx mcp-server-time` | framework-dependent `dotnet tool` `Vompa.McpTime` with `.mcp/server.json`, started with `dotnet dnx`; not yet published | decision D17, plan slice 04, assumption 8 |
+| Configuration from the working directory | – | no `appsettings*.json`, environment variables only | deliberate (final review, slice 04): clients start the tool in arbitrary folders |
+| Non-string value for `timezone` (e.g. `42`) | rejected by pydantic in the original, wording not part of the contract | `isError` "Invalid timezone" with the raw JSON value; JSON `null` counts as missing | improvement on purpose (plan slice 02, assumption 3) |

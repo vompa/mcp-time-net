@@ -5,11 +5,11 @@ flowchart TB
   classDef proc fill:#FCEFE3,stroke:#B4651E,color:#4F2B0B,stroke-width:1.5px
   classDef finish fill:#FBE8EA,stroke:#A8394A,color:#4A1720,stroke-width:1.5px
 
-  S00["00 · Scaffold"]:::base --> S01["01 · Server-Kern<br/>& Protokoll"]:::base --> S02["02 · Zeitzonen &<br/>aktuelle Zeit"]:::files
-  subgraph Q["parallel nach 02"]
+  S00["00 · Scaffold"]:::base --> S01["01 · Server core<br/>& protocol"]:::base --> S02["02 · Time zones &<br/>current time"]:::files
+  subgraph Q["parallel after 02"]
     direction LR
-    S03["03 · Umrechnung"]:::files
-    S04["04 · Start &<br/>Verteilung"]:::finish
+    S03["03 · Conversion"]:::files
+    S04["04 · Start &<br/>distribution"]:::finish
   end
   S02 --> S03
   S02 --> S04

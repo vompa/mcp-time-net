@@ -1,334 +1,334 @@
-# Zielstack-Recherche – mcp-time auf .NET 10
+# Target stack research – mcp-time on .NET 10
 
-## Ziel & Umfang
+## Goal & scope
 
-Neubau des lokalen MCP-Servers „mcp-time“ (stdio, zwei read-only Tools: aktuelle Zeit in einer IANA-Zeitzone; Umrechnung einer Wanduhrzeit zwischen IANA-Zeitzonen inkl. DST, nicht-existenter und mehrdeutiger lokaler Zeiten) von Python (MCP Python SDK 2.x `MCPServer`, `zoneinfo` + `tzdata`, `tzlocal`, pydantic als `structuredContent` mit `outputSchema`, pytest + freezegun) auf C# / .NET 10.
+Rebuild of the local MCP server "mcp-time" (stdio, two read-only tools: current time in an IANA time zone; conversion of a wall-clock time between IANA time zones, including DST, skipped and ambiguous local times) from Python (MCP Python SDK 2.x `MCPServer`, `zoneinfo` + `tzdata`, `tzlocal`, pydantic as `structuredContent` with `outputSchema`, pytest + freezegun) to C# / .NET 10.
 
-Bereiche: MCP-Server-Core (Tool-Registrierung mit Input-/Output-Schema und Annotations, beide Protokoll-Ären 2025-11-25 via `initialize` und 2026-07-28 sessionless, unbekanntes Tool als JSON-RPC -32602), Zeitzonen (IANA-Lookup mit exakter Key-Validierung, lokale Zeitzone mit Override-Flag und UTC-Fallback, DST-Flags, gebrochene Offsets), Parsing/Formatierung (HH:MM, ISO 8601 mit Offset, englischer Wochentag), Fehler als `isError`-Tool-Results, CLI mit `--local-timezone`-Validierung, Tests mit eingefrorener Uhr, Distribution (heute uvx/pip/Docker).
+Areas: MCP server core (tool registration with input/output schema and annotations, both protocol eras 2025-11-25 via `initialize` and 2026-07-28 sessionless, unknown tool as JSON-RPC -32602), time zones (IANA lookup with exact key validation, local time zone with override flag and UTC fallback, DST flags, fractional offsets), parsing/formatting (HH:MM, ISO 8601 with offset, English weekday), errors as `isError` tool results, CLI with `--local-timezone` validation, tests with a frozen clock, distribution (today uvx/pip/Docker).
 
-Pass 1 – BROAD und Pass 2 – DEEP abgeschlossen (DEEP-Abschnitte mit Präfix „DEEP:“). Stand: 2026-10-23.
+Pass 1 – BROAD and pass 2 – DEEP done (DEEP sections carry the prefix "DEEP:"). As of: 2026-10-23.
 
-## Versionen & Support
+## Versions & support
 
-| Komponente | Stand | Support / Anmerkung | Quelle |
+| Component | Status | Support / note | Source |
 |---|---|---|---|
-| .NET 10 | LTS, GA 11.11.2025, aktueller Patch 10.0.13 (13.10.2026) | Support bis 14.11.2028 | https://dotnet.microsoft.com/en-us/platform/support/policy/dotnet-core |
-| .NET 11 | RC2 (13.10.2026, go-live), GA zur .NET Conf 10.–13.11.2026 | ungerade Version → STS (Kadenz-Regel, Seite nennt es nicht explizit) | dto. |
-| .NET 8 / 9 | Support-Ende 10.11.2026 | irrelevant für Neubau, aber Hinweis für Multi-Targeting | https://www.elevenforum.com/t/net-8-and-net-9-will-reach-end-of-support-on-november-10-2026.47839/ |
-| `ModelContextProtocol` (offizielles C#-SDK) | 2.3.0 (20.10.2026); 2.2.0 (13.08.), 2.1.0 (05.08.), 2.0.0 (28.07.2026); letzte 1.x: 1.4.1 | TFMs: netstandard2.0, net8.0, net9.0, net10.0; Deps: `ModelContextProtocol.Core` (=2.3.0), `Microsoft.Extensions.Hosting.Abstractions` ≥ 10.0.13, `Microsoft.Extensions.Caching.Abstractions` ≥ 10.0.13 | https://www.nuget.org/packages/ModelContextProtocol/absoluteLatest |
-| NodaTime | 3.3.6 (22.10.2026), tzdb 2026e | 3.3.x ohne net6.0-Target; tzdb-Patches laufend | https://nodatime.org/versions |
-| C# | 14 (Standard in .NET 10) | – | https://learn.microsoft.com/en-us/dotnet/csharp/whats-new/csharp-14 |
-| MCPB manifest | `manifest_version` 0.3 (0.4 für `uv`) | – | https://github.com/modelcontextprotocol/mcpb/blob/main/MANIFEST.md |
+| .NET 10 | LTS, GA 11.11.2025, current patch 10.0.13 (13.10.2026) | supported until 14.11.2028 | https://dotnet.microsoft.com/en-us/platform/support/policy/dotnet-core |
+| .NET 11 | RC2 (13.10.2026, go-live), GA at .NET Conf 10.–13.11.2026 | odd version → STS (cadence rule, the page does not say so explicitly) | same |
+| .NET 8 / 9 | end of support 10.11.2026 | irrelevant for the rebuild, but a note for multi-targeting | https://www.elevenforum.com/t/net-8-and-net-9-will-reach-end-of-support-on-november-10-2026.47839/ |
+| `ModelContextProtocol` (official C# SDK) | 2.3.0 (20.10.2026); 2.2.0 (13.08.), 2.1.0 (05.08.), 2.0.0 (28.07.2026); last 1.x: 1.4.1 | TFMs: netstandard2.0, net8.0, net9.0, net10.0; deps: `ModelContextProtocol.Core` (=2.3.0), `Microsoft.Extensions.Hosting.Abstractions` ≥ 10.0.13, `Microsoft.Extensions.Caching.Abstractions` ≥ 10.0.13 | https://www.nuget.org/packages/ModelContextProtocol/absoluteLatest |
+| NodaTime | 3.3.6 (22.10.2026), tzdb 2026e | 3.3.x has no net6.0 target; tzdb patches ongoing | https://nodatime.org/versions |
+| C# | 14 (default in .NET 10) | – | https://learn.microsoft.com/en-us/dotnet/csharp/whats-new/csharp-14 |
+| MCPB manifest | `manifest_version` 0.3 (0.4 for `uv`) | – | https://github.com/modelcontextprotocol/mcpb/blob/main/MANIFEST.md |
 
-## Erkenntnisse nach Thema
+## Findings by topic
 
-### MCP C# SDK 2.x – Protokoll-Ären, Pakete, Breaking Changes
+### MCP C# SDK 2.x – protocol eras, packages, breaking changes
 
-- Das offizielle SDK (gemeinsam von Microsoft und dem MCP-Projekt) implementiert ab v2.0.0 die Spec-Revision **2026-07-28** und bleibt rückwärtskompatibel zu **2025-11-25 und älter**: Ein v2-Server akzeptiert weiterhin den Legacy-Handshake `initialize`, ein v2-Client fällt bei älteren Servern darauf zurück. Clients bevorzugen 2026-07-28; `McpClientOptions.ProtocolVersion` erlaubt Pinning. (https://devblogs.microsoft.com/dotnet/announcing-v20-of-the-official-mcp-csharp-sdk/)
-- In 2026-07-28 entfallen `initialize`/`initialized` und `Mcp-Session-Id`; Protokollversion und Capabilities reisen mit jedem Request („discovery-first negotiation“, `server/discover`). (dto.; https://github.com/modelcontextprotocol/csharp-sdk/releases)
-- Für stdio beschreibt der Blogpost nicht explizit, wie beide Ären bedient werden – laut Release Notes ist Down-Level-Interop eingebaut; konkretes stdio-Verhalten (z. B. `server/discover` vs. `initialize` auf derselben Pipe) ist **in DEEP zu verifizieren**.
-- Pakete: `ModelContextProtocol.Core` (Low-Level), `ModelContextProtocol` (stdio-Server, Hosting/DI, Attribut-Discovery), `ModelContextProtocol.AspNetCore` (HTTP), `ModelContextProtocol.Extensions.Tasks`, `ModelContextProtocol.Extensions.Apps` (experimentell, `MCPEXP003`). Für einen stdio-Server reicht `ModelContextProtocol`. (Blogpost)
-- Breaking Changes v2 ggü. 1.x: HTTP standardmäßig stateless (`HttpServerTransportOptions.Stateless = true`); Tasks in eigenes Paket verschoben; Sampling/Roots/Logging deprecated (`MCP9005`), Legacy-SSE `MCP9004`, stateful-only Optionen `MCP9006`; `Tool.inputSchema` beim Deserialisieren Pflicht; strukturierter Content bei nicht-Objekt-Rückgabetypen wird roh ausgegeben (z. B. `structuredContent: 72` statt `{ "result": 72 }`); Output-Schemas dürfen beliebige JSON Schema 2020-12 Dokumente sein (SEP-2106). (https://github.com/modelcontextprotocol/csharp-sdk/releases)
-- stdio-relevante Änderungen in 2.0.0: über-verschachtelte stdio-Requests liefern JSON-RPC Parse Error; Umgebungsvariablen werden nicht mehr geloggt. (Release Notes)
-- 2.1.0: `subscriptions/listen`-Handler, HTTP-Fallback auf `initialize` wenn `server/discover` scheitert. 2.2.0: `HttpServerSessionMode` (hybrides HTTP für beide Ären auf einem Endpoint). 2.3.0: Release Notes in diesem Lauf nicht gefunden → DEEP. (Release Notes)
-- Neue APIs (für dieses Projekt vermutlich irrelevant): MRTR (`InputRequiredException`, `InputRequest.*`), `[McpHeader]`, Caching-Hints. (Blogpost)
+- From v2.0.0 the official SDK (built jointly by Microsoft and the MCP project) implements spec revision **2026-07-28** and stays backward compatible with **2025-11-25 and older**: A v2 server still accepts the legacy `initialize` handshake, and a v2 client falls back to it for older servers. Clients prefer 2026-07-28; `McpClientOptions.ProtocolVersion` allows pinning. (https://devblogs.microsoft.com/dotnet/announcing-v20-of-the-official-mcp-csharp-sdk/)
+- 2026-07-28 drops `initialize`/`initialized` and `Mcp-Session-Id`; protocol version and capabilities travel with every request ("discovery-first negotiation", `server/discover`). (same; https://github.com/modelcontextprotocol/csharp-sdk/releases)
+- For stdio, the blog post does not say explicitly how both eras are served – according to the release notes, down-level interop is built in; the concrete stdio behavior (for example `server/discover` vs. `initialize` on the same pipe) is **to be verified in DEEP**.
+- Packages: `ModelContextProtocol.Core` (low level), `ModelContextProtocol` (stdio server, hosting/DI, attribute discovery), `ModelContextProtocol.AspNetCore` (HTTP), `ModelContextProtocol.Extensions.Tasks`, `ModelContextProtocol.Extensions.Apps` (experimental, `MCPEXP003`). `ModelContextProtocol` is enough for a stdio server. (Blog post)
+- Breaking changes in v2 vs. 1.x: HTTP is stateless by default (`HttpServerTransportOptions.Stateless = true`); tasks moved to their own package; sampling/roots/logging deprecated (`MCP9005`), legacy SSE `MCP9004`, stateful-only options `MCP9006`; `Tool.inputSchema` is required on deserialization; structured content for non-object return types is emitted raw (for example `structuredContent: 72` instead of `{ "result": 72 }`); output schemas may be any JSON Schema 2020-12 document (SEP-2106). (https://github.com/modelcontextprotocol/csharp-sdk/releases)
+- Changes in 2.0.0 that matter for stdio: over-nested stdio requests return a JSON-RPC parse error; environment variables are no longer logged. (Release notes)
+- 2.1.0: `subscriptions/listen` handler, HTTP fallback to `initialize` when `server/discover` fails. 2.2.0: `HttpServerSessionMode` (hybrid HTTP for both eras on one endpoint). 2.3.0: release notes not found in this run → DEEP. (Release notes)
+- New APIs (probably irrelevant for this project): MRTR (`InputRequiredException`, `InputRequest.*`), `[McpHeader]`, caching hints. (Blog post)
 
-### MCP C# SDK – Tool-Deklaration, Annotations, Structured Content, Fehler
+### MCP C# SDK – tool declaration, annotations, structured content, errors
 
-- Tools: Klasse mit `[McpServerToolType]`, Methoden mit `[McpServerTool]`, Beschreibungen über `[Description]`; Registrierung via `AddMcpServer()` + Transport (`WithStdioServerTransport()` für stdio) + `WithToolsFromAssembly()`/`WithTools<T>()`. Parameter wie `McpServer`, `RequestContext<CallToolRequestParams>` und DI-Services werden injiziert. (https://devblogs.microsoft.com/dotnet/announcing-v20-of-the-official-mcp-csharp-sdk/)
-- `McpServerToolAttribute`-Properties (Doku-Stand v1-API, für v2 in DEEP prüfen): `Name` (Default Methodenname), `Title`, `ReadOnly` (Default false), `Idempotent` (false), `Destructive` (Default **true**), `OpenWorld` (Default **true**), `UseStructuredContent` (false) – füllt `OutputSchema` und `StructuredContent`, `OutputSchemaType` (Schema aus einem anderen Typ als dem Rückgabetyp), `IconSource`, `TaskSupport` (experimentell). Für read-only Zeit-Tools müssen also `ReadOnly = true`, `Destructive = false`, `OpenWorld = false`, `Idempotent = true` explizit gesetzt werden. (https://csharp.sdk.modelcontextprotocol.io/v1/api/ModelContextProtocol.Server.McpServerToolAttribute.html)
-- Rückgabe-Mapping: `string` → Text-Block; `ContentBlock`/`IEnumerable<…>`/`AIContent` → Content-Liste; `CallToolResult` → unverändert (volle Kontrolle, z. B. `IsError = true`); sonstige Typen → als JSON serialisierter Text-Block. (dto.)
-- Fehler: `McpException` → Fehler-Result mit der Exception-Message an den Client; andere Exceptions → Fehler-Result mit generischer Meldung (kein Leak). Alternativ explizit `CallToolResult { IsError = true }`. Wichtig: DataAnnotations formen nur das Schema, das SDK validiert Eingaben **nicht** zur Laufzeit – Validierung ist Sache des Tools. (dto.)
-- Verhalten bei unbekanntem Toolnamen (Python: JSON-RPC -32602) ist in den gelesenen Quellen nicht dokumentiert → DEEP (SDK-Quellcode / Tests prüfen).
-- `McpServerToolCreateOptions` als programmatische Alternative (u. a. mehrere Icons). (https://csharp.sdk.modelcontextprotocol.io/api/ModelContextProtocol.Server.McpServerToolCreateOptions.html)
+- Tools: class with `[McpServerToolType]`, methods with `[McpServerTool]`, descriptions via `[Description]`; registration via `AddMcpServer()` + transport (`WithStdioServerTransport()` for stdio) + `WithToolsFromAssembly()`/`WithTools<T>()`. Parameters such as `McpServer`, `RequestContext<CallToolRequestParams>` and DI services are injected. (https://devblogs.microsoft.com/dotnet/announcing-v20-of-the-official-mcp-csharp-sdk/)
+- `McpServerToolAttribute` properties (docs reflect the v1 API, check for v2 in DEEP): `Name` (default method name), `Title`, `ReadOnly` (default false), `Idempotent` (false), `Destructive` (default **true**), `OpenWorld` (default **true**), `UseStructuredContent` (false) – fills `OutputSchema` and `StructuredContent`, `OutputSchemaType` (schema from a type other than the return type), `IconSource`, `TaskSupport` (experimental). For read-only time tools, `ReadOnly = true`, `Destructive = false`, `OpenWorld = false` and `Idempotent = true` must therefore be set explicitly. (https://csharp.sdk.modelcontextprotocol.io/v1/api/ModelContextProtocol.Server.McpServerToolAttribute.html)
+- Return mapping: `string` → text block; `ContentBlock`/`IEnumerable<…>`/`AIContent` → content list; `CallToolResult` → unchanged (full control, for example `IsError = true`); other types → text block serialized as JSON. (same)
+- Errors: `McpException` → error result with the exception message for the client; other exceptions → error result with a generic message (no leak). Alternatively, return `CallToolResult { IsError = true }` explicitly. Important: DataAnnotations only shape the schema; the SDK does **not** validate inputs at runtime – validation is the tool's job. (same)
+- Behavior for an unknown tool name (Python: JSON-RPC -32602) is not documented in the sources read → DEEP (check SDK source code / tests).
+- `McpServerToolCreateOptions` as a programmatic alternative (among other things, several icons). (https://csharp.sdk.modelcontextprotocol.io/api/ModelContextProtocol.Server.McpServerToolCreateOptions.html)
 
-### Zeitzonen in .NET 10 – `TimeZoneInfo`, IANA, ICU
+### Time zones in .NET 10 – `TimeZoneInfo`, IANA, ICU
 
-- `TimeZoneInfo` ist immutable und wird über `FindSystemTimeZoneById`, `TryFindSystemTimeZoneById`, `Local`, `Utc` oder `CreateCustomTimeZone` bezogen; `HasIanaId` zeigt, ob die Instanz eine IANA-ID trägt. Members für DST-Randfälle: `IsInvalidTime` (Lücke beim Vorstellen), `IsAmbiguousTime` (Überlappung beim Zurückstellen), `GetAmbiguousTimeOffsets` (beide möglichen Offsets), dazu `IsDaylightSavingTime`, `GetUtcOffset`. (https://learn.microsoft.com/dotnet/api/system.timezoneinfo)
-- Allgemein bekanntes, in diesem Lauf nicht in Primärquelle belegtes Verhalten (→ DEEP verifizieren): Seit .NET 6 akzeptiert `FindSystemTimeZoneById` auf allen Plattformen sowohl IANA- als auch Windows-IDs und konvertiert intern; auf Linux wird `Local` aus `TZ` bzw. `/etc/localtime` bestimmt, sonst UTC; `ConvertTime`/`ConvertTimeToUtc` werfen bei ungültiger (`Unspecified`) Zeit `ArgumentException`; `GetAmbiguousTimeOffsets` wirft, wenn die Zeit nicht mehrdeutig ist. Relevant für „exakte Key-Validierung“: Wenn Lookups Windows-IDs oder abweichende Schreibweisen/Aliase akzeptieren, muss die Exaktheit selbst geprüft werden (z. B. gegen `tz.Id` / `GetSystemTimeZones()`).
-- `TimeZoneInfo.TryConvertIanaIdToWindowsId` / `TryConvertWindowsIdToIanaId` existieren ab .NET 6, funktionieren aber **nur mit ICU**. ICU fehlt, wenn das OS keine ICU hat (ältere Windows-Versionen ohne App-local ICU), wenn Globalization-Invariant-Mode aktiv ist oder wenn auf Windows NLS-Modus erzwungen wird. App-local ICU ist als Opt-in möglich. (https://learn.microsoft.com/hu-hu/dotnet/api/system.timezoneinfo.tryconvertianaidtowindowsid?view=netcore-2.2)
-- Konsequenz für die Zeitzonendaten: Unter Linux/macOS kommt die tz-Datenbank vom OS (`/usr/share/zoneinfo`), unter Windows aus der Registry + ICU-Mapping. Die Ergebnisse können daher je Plattform/Patchstand differieren (Python-Original nutzte gebündeltes `tzdata`). In Containern (z. B. Alpine, chiseled) müssen `tzdata` und ggf. ICU vorhanden sein bzw. ist Invariant-Mode zu beachten → DEEP.
-- Historische Grundlage zum Umgang mit ambiguous/invalid Zeitpunkten mit `TimeZoneInfo`: BCL-Team-Blog (archiviert). (https://learn.microsoft.com/en-us/archive/blogs/bclteam/system-timezoneinfo-working-with-ambiguous-and-invalid-points-in-time-josh-free)
+- `TimeZoneInfo` is immutable and is obtained via `FindSystemTimeZoneById`, `TryFindSystemTimeZoneById`, `Local`, `Utc` or `CreateCustomTimeZone`; `HasIanaId` shows whether the instance carries an IANA ID. Members for DST edge cases: `IsInvalidTime` (gap when clocks move forward), `IsAmbiguousTime` (overlap when clocks move back), `GetAmbiguousTimeOffsets` (both possible offsets), plus `IsDaylightSavingTime`, `GetUtcOffset`. (https://learn.microsoft.com/dotnet/api/system.timezoneinfo)
+- Generally known behavior that this run did not confirm in a primary source (→ verify in DEEP): Since .NET 6, `FindSystemTimeZoneById` accepts both IANA and Windows IDs on all platforms and converts internally; on Linux, `Local` comes from `TZ` or `/etc/localtime`, otherwise UTC; `ConvertTime`/`ConvertTimeToUtc` throw `ArgumentException` for an invalid (`Unspecified`) time; `GetAmbiguousTimeOffsets` throws when the time is not ambiguous. Relevant for "exact key validation": If lookups accept Windows IDs or different spellings/aliases, exactness has to be checked separately (for example against `tz.Id` / `GetSystemTimeZones()`).
+- `TimeZoneInfo.TryConvertIanaIdToWindowsId` / `TryConvertWindowsIdToIanaId` exist since .NET 6 but work **only with ICU**. ICU is missing when the OS has no ICU (older Windows versions without app-local ICU), when globalization invariant mode is active, or when NLS mode is forced on Windows. App-local ICU is possible as an opt-in. (https://learn.microsoft.com/hu-hu/dotnet/api/system.timezoneinfo.tryconvertianaidtowindowsid?view=netcore-2.2)
+- Consequence for the time zone data: On Linux/macOS the tz database comes from the OS (`/usr/share/zoneinfo`); on Windows it comes from the registry + ICU mapping. Results can therefore differ by platform and patch level (the Python original used the bundled `tzdata`). In containers (for example Alpine, chiseled), `tzdata` and possibly ICU must be present, and invariant mode needs attention → DEEP.
+- Historical basis for handling ambiguous/invalid points in time with `TimeZoneInfo`: BCL team blog (archived). (https://learn.microsoft.com/en-us/archive/blogs/bclteam/system-timezoneinfo-working-with-ambiguous-and-invalid-points-in-time-josh-free)
 
-### NodaTime als Alternative
+### NodaTime as an alternative
 
-- NodaTime (aktuell 3.3.x laut NuGet-Treffer; `NodaTime.Testing` 3.3.0) bringt eine eigene, gebündelte IANA-tzdb (`DateTimeZoneProviders.Tzdb`), damit plattformunabhängig identische Ergebnisse – vergleichbar zum Python-Setup mit `tzdata`. Der Provider bietet `GetZoneOrNull` (Lookup ohne Exception) und eine Liste der IDs; zusätzlich gibt es einen BCL-Provider. (https://nodatime.org/api/NodaTime.DateTimeZoneProviders.html, https://nodatime.org/api/NodaTime.TimeZones.html, https://www.nuget.org/packages/NodaTime.Testing)
-- Explizite Resolver für lokale Zeiten (`NodaTime.TimeZones.Resolvers`): `LenientResolver` (mehrdeutig → frühere, übersprungen → um Lückenlänge vorwärts verschoben), `StrictResolver` (wirft `AmbiguousTimeException`/`SkippedTimeException`), Einzelresolver `ReturnEarlier`, `ReturnLater`, `ThrowWhenAmbiguous`, `ReturnEndOfIntervalBefore`, `ReturnStartOfIntervalAfter`, `ReturnForwardShifted`, `ThrowWhenSkipped`, kombinierbar via `CreateMappingResolver`. Zusätzlich `MapLocal` liefert eine `ZoneLocalMapping` mit Count 0/1/2 – direkt nutzbar für „non-existent“/„ambiguous“-Flags. (https://nodatime.org/3.3.x/api/NodaTime.TimeZones.Resolvers.html, https://nodatime.org/3.2.x/api/NodaTime.TimeZones.SkippedTimeResolver.html, https://nodatime.org/3.2.x/api/NodaTime.TimeZones.AmbiguousTimeResolver.html)
-- `NodaTime.Testing` liefert `FakeClock`; NodaTime nutzt eigenes `IClock` statt `TimeProvider` – Brücke/Adapter wäre nötig, falls `TimeProvider` als Standard-Abstraktion gewünscht ist (→ DEEP prüfen, ob NodaTime 3.3 `TimeProvider`-Interop hat). (https://www.nuget.org/packages/NodaTime.Testing)
-- Abwägung (nicht bewertet, nur gesammelt): `TimeZoneInfo` = keine Abhängigkeit, OS-tzdb, ICU-Abhängigkeit, implizites DST-Handling; NodaTime = zusätzliche Abhängigkeit, gebündelte und reproduzierbare tzdb, explizite Typen (`LocalDateTime`, `ZonedDateTime`, `Instant`, `Offset`) und Resolver. Historischer Kontext: MSDN Magazine „The Working Programmer – Noda Time“. (https://learn.microsoft.com/en-us/archive/msdn-magazine/2013/march/the-working-programmer-noda-time)
+- NodaTime (currently 3.3.x according to NuGet hits; `NodaTime.Testing` 3.3.0) ships its own bundled IANA tzdb (`DateTimeZoneProviders.Tzdb`), so results are identical on every platform – comparable to the Python setup with `tzdata`. The provider offers `GetZoneOrNull` (lookup without an exception) and a list of IDs; there is also a BCL provider. (https://nodatime.org/api/NodaTime.DateTimeZoneProviders.html, https://nodatime.org/api/NodaTime.TimeZones.html, https://www.nuget.org/packages/NodaTime.Testing)
+- Explicit resolvers for local times (`NodaTime.TimeZones.Resolvers`): `LenientResolver` (ambiguous → earlier, skipped → shifted forward by the gap length), `StrictResolver` (throws `AmbiguousTimeException`/`SkippedTimeException`), single resolvers `ReturnEarlier`, `ReturnLater`, `ThrowWhenAmbiguous`, `ReturnEndOfIntervalBefore`, `ReturnStartOfIntervalAfter`, `ReturnForwardShifted`, `ThrowWhenSkipped`, combinable via `CreateMappingResolver`. In addition, `MapLocal` returns a `ZoneLocalMapping` with count 0/1/2 – directly usable for "non-existent"/"ambiguous" flags. (https://nodatime.org/3.3.x/api/NodaTime.TimeZones.Resolvers.html, https://nodatime.org/3.2.x/api/NodaTime.TimeZones.SkippedTimeResolver.html, https://nodatime.org/3.2.x/api/NodaTime.TimeZones.AmbiguousTimeResolver.html)
+- `NodaTime.Testing` provides `FakeClock`; NodaTime uses its own `IClock` instead of `TimeProvider` – a bridge/adapter would be needed if `TimeProvider` is wanted as the standard abstraction (→ check in DEEP whether NodaTime 3.3 has `TimeProvider` interop). (https://www.nuget.org/packages/NodaTime.Testing)
+- Trade-off (collected, not rated): `TimeZoneInfo` = no dependency, OS tzdb, ICU dependency, implicit DST handling; NodaTime = additional dependency, bundled and reproducible tzdb, explicit types (`LocalDateTime`, `ZonedDateTime`, `Instant`, `Offset`) and resolvers. Historical context: MSDN Magazine "The Working Programmer – Noda Time". (https://learn.microsoft.com/en-us/archive/msdn-magazine/2013/march/the-working-programmer-noda-time)
 
-### Testen mit Fake-Clock – `TimeProvider` / `FakeTimeProvider`
+### Testing with a fake clock – `TimeProvider` / `FakeTimeProvider`
 
-- `System.TimeProvider` (seit .NET 8 in der BCL) ist die Standard-Abstraktion für Zeit; `GetUtcNow()`, `GetLocalNow()`, `LocalTimeZone`, `TimeProvider.System`. (https://learn.microsoft.com/zh-tw/dotnet/standard/datetime/timeprovider-overview)
-- `FakeTimeProvider` im Paket `Microsoft.Extensions.TimeProvider.Testing` (Namespace `Microsoft.Extensions.Time.Testing`; Doku zeigt 10.x): Konstruktor mit Startzeit, `SetUtcNow`, `AdjustTime`, `Advance`, `SetLocalTimeZone(TimeZoneInfo)`, `AutoAdvanceAmount`. Damit lassen sich sowohl die eingefrorene Uhr (freezegun-Ersatz) als auch die lokale Zeitzone im Test fixieren. (https://learn.microsoft.com/en-us/dotNet/api/microsoft.extensions.time.testing.faketimeprovider?view=net-8.0, Quellcode: https://source.dot.net/Microsoft.Extensions.TimeProvider.Testing/FakeTimeProvider.cs.html)
-- Praxisartikel (Blog, sekundär) zur Ablösung von `DateTime.Now` durch `TimeProvider`: https://blog.maartenballiauw.be/posts/2026-07-22-timeprovider-and-the-end-of-untestable-datetime-now/
+- `System.TimeProvider` (in the BCL since .NET 8) is the standard abstraction for time; `GetUtcNow()`, `GetLocalNow()`, `LocalTimeZone`, `TimeProvider.System`. (https://learn.microsoft.com/zh-tw/dotnet/standard/datetime/timeprovider-overview)
+- `FakeTimeProvider` in the package `Microsoft.Extensions.TimeProvider.Testing` (namespace `Microsoft.Extensions.Time.Testing`; the docs show 10.x): constructor with start time, `SetUtcNow`, `AdjustTime`, `Advance`, `SetLocalTimeZone(TimeZoneInfo)`, `AutoAdvanceAmount`. This fixes both the frozen clock (freezegun replacement) and the local time zone in tests. (https://learn.microsoft.com/en-us/dotNet/api/microsoft.extensions.time.testing.faketimeprovider?view=net-8.0, source code: https://source.dot.net/Microsoft.Extensions.TimeProvider.Testing/FakeTimeProvider.cs.html)
+- Practical article (blog, secondary) on replacing `DateTime.Now` with `TimeProvider`: https://blog.maartenballiauw.be/posts/2026-07-22-timeprovider-and-the-end-of-untestable-datetime-now/
 
-### Projektvorlage, Struktur & Distribution (dotnet tool / dnx / server.json / Registry)
+### Project template, structure & distribution (dotnet tool / dnx / server.json / registry)
 
-- Offizielle Vorlage `Microsoft.McpServer.ProjectTemplates` (Preview), `dotnet new mcpserver`; erfordert .NET 10 SDK. Optionen: Framework, Transport `local` (stdio) oder `remote` (HTTP), Native-AOT-Publish, Self-contained-Publish. Standard: self-contained Tool-Paket für die gängigen RIDs. Erzeugt `Program.cs` (Server + Transport), Beispiel-Tool-Klasse und `.mcp/server.json`. (https://learn.microsoft.com/dotnet/ai/quickstarts/build-mcp-server)
-- Ausführung über `dnx <PackageId>@<version> --yes` (im .NET 10 SDK enthalten) – Gegenstück zu `uvx`. `dotnet pack -c Release` erzeugt ein Tool-Paket plus RID-spezifische Pakete gemäß `<RuntimeIdentifiers>`; alle `.nupkg` müssen gepusht werden. Test-Feed: `https://apiint.nugettest.org/v3/index.json`. NuGet.org zeigt einen „MCP Server“-Tab mit kopierbarer Client-Konfig. (dto.; ursprüngliche Ankündigung: https://devblogs.microsoft.com/dotnet/mcp-server-dotnet-nuget-quickstart/)
-- `server.json` folgt dem MCP-Registry-Schema (`https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json`); NuGet nutzt den ersten `packages`-Eintrag mit `registryType: nuget`; `packageArguments` (z. B. `--local-timezone`) und `environmentVariables` deklarierbar. (https://learn.microsoft.com/dotnet/ai/quickstarts/build-mcp-server)
-- Veröffentlichung in der offiziellen MCP Registry: `name` im Namespace `io.github.<user>/<server>`, README muss `<!-- mcp-name: … -->` enthalten (`PackageReadmeFile`), erst NuGet-Push und Validierung abwarten, dann `mcp-publisher login github` + `mcp-publisher publish .mcp/server.json`. (https://learn.microsoft.com/en-us/dotnet/ai/quickstarts/publish-mcp-registry)
-- csproj-Properties `PackAsTool`, `PackageType McpServer`, `ToolCommandName` werden in den gelesenen Seiten nicht erläutert → DEEP (Template-Output bzw. PR https://github.com/dotnet/docs/pull/49301/files).
-- Client-Konfiguration lokal: `dotnet run --project …` in `.vscode/mcp.json` bzw. `.mcp.json` (Visual Studio). (Quickstart)
+- Official template `Microsoft.McpServer.ProjectTemplates` (preview), `dotnet new mcpserver`; requires the .NET 10 SDK. Options: framework, transport `local` (stdio) or `remote` (HTTP), native AOT publish, self-contained publish. Default: self-contained tool package for the common RIDs. Generates `Program.cs` (server + transport), a sample tool class and `.mcp/server.json`. (https://learn.microsoft.com/dotnet/ai/quickstarts/build-mcp-server)
+- Run with `dnx <PackageId>@<version> --yes` (included in the .NET 10 SDK) – the counterpart to `uvx`. `dotnet pack -c Release` creates a tool package plus RID-specific packages according to `<RuntimeIdentifiers>`; all `.nupkg` files must be pushed. Test feed: `https://apiint.nugettest.org/v3/index.json`. NuGet.org shows an "MCP Server" tab with a copyable client config. (same; original announcement: https://devblogs.microsoft.com/dotnet/mcp-server-dotnet-nuget-quickstart/)
+- `server.json` follows the MCP registry schema (`https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json`); NuGet uses the first `packages` entry with `registryType: nuget`; `packageArguments` (for example `--local-timezone`) and `environmentVariables` can be declared. (https://learn.microsoft.com/dotnet/ai/quickstarts/build-mcp-server)
+- Publishing to the official MCP registry: `name` in the namespace `io.github.<user>/<server>`, the README must contain `<!-- mcp-name: … -->` (`PackageReadmeFile`), first wait for the NuGet push and validation, then `mcp-publisher login github` + `mcp-publisher publish .mcp/server.json`. (https://learn.microsoft.com/en-us/dotnet/ai/quickstarts/publish-mcp-registry)
+- The csproj properties `PackAsTool`, `PackageType McpServer`, `ToolCommandName` are not explained on the pages read → DEEP (template output or PR https://github.com/dotnet/docs/pull/49301/files).
+- Local client configuration: `dotnet run --project …` in `.vscode/mcp.json` or `.mcp.json` (Visual Studio). (Quickstart)
 
-### stdio-Hosting & Logging
+### stdio hosting & logging
 
-- Minimal-Setup laut SDK-Doku: `dotnet add package ModelContextProtocol` + `Microsoft.Extensions.Hosting`; `Host.CreateApplicationBuilder(args)`, `AddMcpServer().WithStdioServerTransport().WithToolsFromAssembly()`, `RunAsync()`. Konsolen-Logging muss per `AddConsole(o => o.LogToStandardErrorThreshold = LogLevel.Trace)` vollständig auf **stderr** umgeleitet werden, weil stdout exklusiv dem JSON-RPC-Transport gehört. (https://csharp.sdk.modelcontextprotocol.io/v1/concepts/getting-started.html)
-- Die öffentliche SDK-Doku-Site leitet derzeit auf `/v1/` um; eine v2-spezifische Konzept-Doku wurde in diesem Lauf nicht gefunden → API-Details für 2.3 in DEEP gegen Quellcode/Samples im Repo prüfen (https://github.com/modelcontextprotocol/csharp-sdk).
-- Sekundärquellen (Blogs) zu Transports/Quickstart, nur zur Orientierung: https://www.devleader.ca/2026/07/17/mcp-transports-in-c-stdio-vs-streamable-http-vs-legacy-sse
+- Minimal setup according to the SDK docs: `dotnet add package ModelContextProtocol` + `Microsoft.Extensions.Hosting`; `Host.CreateApplicationBuilder(args)`, `AddMcpServer().WithStdioServerTransport().WithToolsFromAssembly()`, `RunAsync()`. Console logging must be redirected fully to **stderr** with `AddConsole(o => o.LogToStandardErrorThreshold = LogLevel.Trace)`, because stdout belongs exclusively to the JSON-RPC transport. (https://csharp.sdk.modelcontextprotocol.io/v1/concepts/getting-started.html)
+- The public SDK docs site currently redirects to `/v1/`; no v2-specific concept docs were found in this run → check API details for 2.3 in DEEP against source code/samples in the repo (https://github.com/modelcontextprotocol/csharp-sdk).
+- Secondary sources (blogs) on transports/quickstart, for orientation only: https://www.devleader.ca/2026/07/17/mcp-transports-in-c-stdio-vs-streamable-http-vs-legacy-sse
 
-### CLI-Parsing (`--local-timezone`)
+### CLI parsing (`--local-timezone`)
 
-- `System.CommandLine` ist seit 2.0 stabil; aktuell 2.0.13 (13.10.2026), Targets net8.0/netstandard2.0; parallel existiert 3.0.0-rc.2 (Prerelease). Alternative: Argumente über `Microsoft.Extensions.Configuration` (Command-Line-Provider des Hosts) – Wahl offen. (https://www.nuget.org/packages/system.commandline, Doku: https://learn.microsoft.com/en-us/dotnet/standard/commandline/)
-- Hinweis: `Host.CreateApplicationBuilder(args)` interpretiert `args` selbst als Konfigurationsquelle – Wechselwirkung mit eigenem Parser in DEEP prüfen.
+- `System.CommandLine` has been stable since 2.0; current 2.0.13 (13.10.2026), targets net8.0/netstandard2.0; 3.0.0-rc.2 (prerelease) exists in parallel. Alternative: arguments via `Microsoft.Extensions.Configuration` (the host's command-line provider) – choice open. (https://www.nuget.org/packages/system.commandline, docs: https://learn.microsoft.com/en-us/dotnet/standard/commandline/)
+- Note: `Host.CreateApplicationBuilder(args)` itself interprets `args` as a configuration source – check the interaction with a custom parser in DEEP.
 
-### Snapshot-/Approval-Tests
+### Snapshot/approval tests
 
-- **Verify** (VerifyTests) ist das verbreitetste Snapshot-Tool in .NET; Adapter für xUnit (v3), NUnit, MSTest, TUnit; geeignet, um JSON von `tools/list` (Schemas, Annotations) und Tool-Results gegen akzeptierte `.verified.*`-Dateien zu prüfen. Verify hat 2026 Sponsoring-Änderungen kommuniziert (Lizenz/Finanzierung in DEEP prüfen) (geklärt 2026-10-23: Sponsoring-Erklärung ab v33 nötig → kein Verify, siehe D14). (https://docsearch.algolia.com/mcp/docs/repo/verifytests/verify, https://duendesoftware.com/blog/20260409-verify-open-source-sponsorship)
-- Testframework-Landschaft (xUnit v3 / MSTest / TUnit auf Microsoft.Testing.Platform, `dotnet test` in .NET 10) in diesem Lauf nicht recherchiert → DEEP.
+- **Verify** (VerifyTests) is the most widespread snapshot tool in .NET; adapters for xUnit (v3), NUnit, MSTest, TUnit; suitable for checking the JSON of `tools/list` (schemas, annotations) and tool results against accepted `.verified.*` files. Verify announced sponsorship changes in 2026 (check license/funding in DEEP) (clarified 2026-10-23: a sponsorship declaration is required from v33 → no Verify, see D14). (https://docsearch.algolia.com/mcp/docs/repo/verifytests/verify, https://duendesoftware.com/blog/20260409-verify-open-source-sponsorship)
+- The test framework landscape (xUnit v3 / MSTest / TUnit on Microsoft.Testing.Platform, `dotnet test` in .NET 10) was not researched in this run → DEEP.
 
-### Container & Globalisierung (Docker-Distribution)
+### Containers & globalization (Docker distribution)
 
-- Größenoptimierte .NET-Images (Alpine, Mariner/Azure Linux distroless, Ubuntu chiseled) enthalten **weder ICU noch tzdata** – nur für Invariant-Mode-Apps geeignet. Ubuntu/Debian-Images haben beides. Chiseled-Varianten: Basis (ohne tzdata/ICU), `-aot` (ohne tzdata/ICU/stdc++), `-extra` (mit tzdata, ICU, stdc++ – für self-contained/single-file mit Globalisierung). `runtime-deps` für self-contained/AOT. (https://learn.microsoft.com/dotnet/core/docker/container-images, https://github.com/dotnet/dotnet-docker/discussions/4821)
-- Für einen Zeitzonen-Server ist das zentral: Mit `TimeZoneInfo` braucht das Image tzdata (und für IANA↔Windows-Mapping ICU); mit NodaTime-tzdb ist man unabhängig von OS-tzdata. `InvariantGlobalization=true` betrifft Kultur/ICU, nicht zwingend tzdata (→ DEEP). Seite zeigt .NET-8-Tags; .NET-10-Tags (Ubuntu 24.04 „noble“?) in DEEP verifizieren.
+- Size-optimized .NET images (Alpine, Mariner/Azure Linux distroless, Ubuntu chiseled) contain **neither ICU nor tzdata** – suitable only for invariant-mode apps. Ubuntu/Debian images have both. Chiseled variants: base (without tzdata/ICU), `-aot` (without tzdata/ICU/stdc++), `-extra` (with tzdata, ICU, stdc++ – for self-contained/single-file with globalization). `runtime-deps` for self-contained/AOT. (https://learn.microsoft.com/dotnet/core/docker/container-images, https://github.com/dotnet/dotnet-docker/discussions/4821)
+- This is central for a time zone server: With `TimeZoneInfo`, the image needs tzdata (and ICU for the IANA↔Windows mapping); with the NodaTime tzdb, the server does not depend on the OS tzdata. `InvariantGlobalization=true` affects culture/ICU, not necessarily tzdata (→ DEEP). The page shows .NET 8 tags; verify .NET 10 tags (Ubuntu 24.04 "noble"?) in DEEP.
 
 ### MCPB (MCP Bundles)
 
-- `.mcpb` = Zip mit lokalem Server + `manifest.json` (früher DXT); CLI `@anthropic-ai/mcpb` zum Init/Packen. Server-Typen `node`, `python`, `uv`, `binary` – ein .NET-Server ginge als `binary` (self-contained/AOT-Executable, pro OS/Arch eigener Build; `.exe` wird unter Windows angehängt). `user_config` (string/number/boolean/directory/file) wird via `${user_config.KEY}` in `mcp_config.args` injiziert – z. B. für `--local-timezone`. Unterstützt u. a. Claude Desktop (macOS/Windows, Ein-Klick-Install). Aktuelle `manifest_version` → DEEP (MANIFEST.md). (https://docsearch.algolia.com/mcp/docs/repo/modelcontextprotocol/mcpb)
+- `.mcpb` = zip with a local server + `manifest.json` (formerly DXT); CLI `@anthropic-ai/mcpb` for init/pack. Server types `node`, `python`, `uv`, `binary` – a .NET server would work as `binary` (self-contained/AOT executable, separate build per OS/architecture; `.exe` is appended on Windows). `user_config` (string/number/boolean/directory/file) is injected into `mcp_config.args` via `${user_config.KEY}` – for example for `--local-timezone`. Supported by Claude Desktop (macOS/Windows, one-click install), among others. Current `manifest_version` → DEEP (MANIFEST.md). (https://docsearch.algolia.com/mcp/docs/repo/modelcontextprotocol/mcpb)
 
-### DEEP: MCP C# SDK 2.3 – Verhalten laut Quellcode
+### DEEP: MCP C# SDK 2.3 – behavior according to the source code
 
-Quelle: Quellcode `modelcontextprotocol/csharp-sdk`, `main` @ 8b00f20 (23.10.2026), `src/Directory.Build.props` → `VersionPrefix 2.3.0` (https://github.com/modelcontextprotocol/csharp-sdk/tree/main/src). Die GitHub-Release-Notes zu 2.3.0 waren in diesem Lauf nicht abrufbar (API-Zugriff gesperrt), Aussagen stammen daher direkt aus dem Code.
+Source: source code `modelcontextprotocol/csharp-sdk`, `main` @ 8b00f20 (23.10.2026), `src/Directory.Build.props` → `VersionPrefix 2.3.0` (https://github.com/modelcontextprotocol/csharp-sdk/tree/main/src). The GitHub release notes for 2.3.0 could not be retrieved in this run (API access blocked), so the statements come directly from the code.
 
-- **Unbekanntes Tool → JSON-RPC-Fehler -32602, nicht `isError`.** Wird kein registriertes Tool zum Namen gefunden, wirft der Default-Handler `McpProtocolException("Unknown tool: '<name>'", McpErrorCode.InvalidParams)`. `McpProtocolException` wird im Tool-Call-Pfad explizit durchgereicht (nicht in ein Result verpackt) → Protokollfehler wie im Python-Original. `McpErrorCode.cs` dokumentiert -32602 ausdrücklich für „Unknown tool name or invalid protocol-level tool arguments“. (https://github.com/modelcontextprotocol/csharp-sdk/blob/main/src/ModelContextProtocol.Core/Server/McpServerImpl.cs, https://github.com/modelcontextprotocol/csharp-sdk/blob/main/src/ModelContextProtocol.Core/McpErrorCode.cs)
-- **Exception-Mapping im Tool-Aufruf** (`CreateToolCallErrorResult`): durchgereicht werden nur `OperationCanceledException` (bei Abbruch), `McpProtocolException` und `InputRequiredException` (MRTR). Alle anderen Exceptions werden zu `CallToolResult { IsError = true }`; Text bei `McpException`: **`An error occurred invoking '<tool>': <Message>`**, bei sonstigen Exceptions nur `An error occurred invoking '<tool>'.` – d. h. die SDK stellt einen Präfix voran. Für exakte Fehlertext-Parität mit Python muss das Tool selbst ein `CallToolResult` mit `IsError = true` zurückgeben statt zu werfen.
-- **Beide Protokoll-Ären auf demselben stdio-Server, ohne Konfiguration.** Unterstützte Versionen (`McpProtocolVersions`): 2026-07-28, 2025-11-25, 2025-06-18, 2025-03-26, 2024-11-05. Die Ära wird pro Verbindung aus dem ersten Request abgeleitet: Requests mit Per-Request-`_meta` (Protokollversion) etablieren die moderne Ära; `server/discover` ohne solche Metadaten → -32602; `initialize` auf einer bereits modernen Sitzung → **-32601 MethodNotFound** („Use server/discover …“); ohne etablierte Ära wird `initialize` klassisch verhandelt. `ping` existiert in 2026-07-28 nicht mehr (SEP-2575). (https://github.com/modelcontextprotocol/csharp-sdk/blob/main/src/ModelContextProtocol.Core/Server/McpServerImpl.cs, https://github.com/modelcontextprotocol/csharp-sdk/blob/main/src/ModelContextProtocol.Core/McpSessionHandler.cs)
-- **Attribut-API in v2 unverändert gültig.** `McpServerToolAttribute` hat weiterhin `Name`, `Title`, `Destructive`, `Idempotent`, `OpenWorld`, `ReadOnly`, `UseStructuredContent`, `OutputSchemaType`, `IconSource`; Defaults im Code: `Destructive = true`, `Idempotent = false`, `OpenWorld = true`, `ReadOnly = false`. Intern nullable Felder → nur explizit gesetzte Werte werden als Annotation-Hint übernommen. Die v1-Doku zu den Attributen trifft damit auf 2.3 zu. (https://github.com/modelcontextprotocol/csharp-sdk/blob/main/src/ModelContextProtocol.Core/Server/McpServerToolAttribute.cs)
-- **Output-Schema / Structured Content:** `UseStructuredContent = true` (Attribut oder `McpServerToolCreateOptions`) erzeugt `OutputSchema` über `AIJsonUtilities.CreateJsonSchema` (Microsoft.Extensions.AI, basiert auf `System.Text.Json.Schema.JsonSchemaExporter`) aus dem Rückgabetyp bzw. `OutputSchemaType`; die `[Description]` des Rückgabewerts fließt ins Output-Schema ein. Tool-Namen werden per Regex validiert (ungültiger Name → `ArgumentException` beim Registrieren). (https://github.com/modelcontextprotocol/csharp-sdk/blob/main/src/ModelContextProtocol.Core/Server/AIFunctionMcpServerTool.cs, https://github.com/modelcontextprotocol/csharp-sdk/blob/main/src/ModelContextProtocol.Core/Server/McpServerToolCreateOptions.cs)
-- **AOT/Trimming:** Alle SDK-Pakete (`ModelContextProtocol`, `.Core`, `.AspNetCore`, `.Extensions.*`) setzen `<IsAotCompatible>true</IsAotCompatible>`. Interne Serialisierung nutzt source-generierte `McpJsonUtilities.JsonContext`. Für eigene Tool-Parameter-/Rückgabetypen unter Native AOT ist ein eigener `JsonSerializerContext` nötig (Attribut-Discovery per Reflection `WithToolsFromAssembly` ist trimming-kritisch → Samples prüfen). Samples im Repo: `QuickstartWeatherServer`, `TestServerWithHosting`, `InMemoryTransport`, `FileBasedMcpServer`, `EverythingServer`. (https://github.com/modelcontextprotocol/csharp-sdk/tree/main/samples)
+- **Unknown tool → JSON-RPC error -32602, not `isError`.** If no registered tool matches the name, the default handler throws `McpProtocolException("Unknown tool: '<name>'", McpErrorCode.InvalidParams)`. `McpProtocolException` is passed through explicitly in the tool call path (not wrapped in a result) → protocol error as in the Python original. `McpErrorCode.cs` documents -32602 explicitly for "Unknown tool name or invalid protocol-level tool arguments". (https://github.com/modelcontextprotocol/csharp-sdk/blob/main/src/ModelContextProtocol.Core/Server/McpServerImpl.cs, https://github.com/modelcontextprotocol/csharp-sdk/blob/main/src/ModelContextProtocol.Core/McpErrorCode.cs)
+- **Exception mapping in the tool call** (`CreateToolCallErrorResult`): Only `OperationCanceledException` (on cancellation), `McpProtocolException` and `InputRequiredException` (MRTR) are passed through. All other exceptions become `CallToolResult { IsError = true }`; text for `McpException`: **`An error occurred invoking '<tool>': <Message>`**, for other exceptions only `An error occurred invoking '<tool>'.` – that is, the SDK prepends a prefix. For exact error text parity with Python, the tool itself must return a `CallToolResult` with `IsError = true` instead of throwing.
+- **Both protocol eras on the same stdio server, without configuration.** Supported versions (`McpProtocolVersions`): 2026-07-28, 2025-11-25, 2025-06-18, 2025-03-26, 2024-11-05. The era is derived per connection from the first request: Requests with per-request `_meta` (protocol version) establish the modern era; `server/discover` without such metadata → -32602; `initialize` on an already modern session → **-32601 MethodNotFound** ("Use server/discover …"); with no established era, `initialize` is negotiated the classic way. `ping` no longer exists in 2026-07-28 (SEP-2575). (https://github.com/modelcontextprotocol/csharp-sdk/blob/main/src/ModelContextProtocol.Core/Server/McpServerImpl.cs, https://github.com/modelcontextprotocol/csharp-sdk/blob/main/src/ModelContextProtocol.Core/McpSessionHandler.cs)
+- **Attribute API still valid in v2.** `McpServerToolAttribute` still has `Name`, `Title`, `Destructive`, `Idempotent`, `OpenWorld`, `ReadOnly`, `UseStructuredContent`, `OutputSchemaType`, `IconSource`; defaults in the code: `Destructive = true`, `Idempotent = false`, `OpenWorld = true`, `ReadOnly = false`. The fields are nullable internally → only explicitly set values are taken over as annotation hints. The v1 docs on the attributes therefore apply to 2.3. (https://github.com/modelcontextprotocol/csharp-sdk/blob/main/src/ModelContextProtocol.Core/Server/McpServerToolAttribute.cs)
+- **Output schema / structured content:** `UseStructuredContent = true` (attribute or `McpServerToolCreateOptions`) generates `OutputSchema` via `AIJsonUtilities.CreateJsonSchema` (Microsoft.Extensions.AI, based on `System.Text.Json.Schema.JsonSchemaExporter`) from the return type or `OutputSchemaType`; the `[Description]` of the return value flows into the output schema. Tool names are validated with a regex (invalid name → `ArgumentException` on registration). (https://github.com/modelcontextprotocol/csharp-sdk/blob/main/src/ModelContextProtocol.Core/Server/AIFunctionMcpServerTool.cs, https://github.com/modelcontextprotocol/csharp-sdk/blob/main/src/ModelContextProtocol.Core/Server/McpServerToolCreateOptions.cs)
+- **AOT/trimming:** All SDK packages (`ModelContextProtocol`, `.Core`, `.AspNetCore`, `.Extensions.*`) set `<IsAotCompatible>true</IsAotCompatible>`. Internal serialization uses the source-generated `McpJsonUtilities.JsonContext`. Custom tool parameter and return types under native AOT need their own `JsonSerializerContext` (attribute discovery by reflection with `WithToolsFromAssembly` is critical for trimming → check the samples). Samples in the repo: `QuickstartWeatherServer`, `TestServerWithHosting`, `InMemoryTransport`, `FileBasedMcpServer`, `EverythingServer`. (https://github.com/modelcontextprotocol/csharp-sdk/tree/main/samples)
 
-### DEEP: `TimeZoneInfo` in .NET 10 – Lookup, Aliase, lokale Zone (laut Doku + Runtime-Quellcode)
+### DEEP: `TimeZoneInfo` in .NET 10 – lookup, aliases, local zone (per docs + runtime source code)
 
-- **Lookup ist case-insensitive.** Laut API-Doku muss `id` in der Länge exakt, aber nicht in Groß-/Kleinschreibung übereinstimmen. Im Runtime-Code sind alle Caches (`_systemTimeZones`, `_timeZonesUsingAlternativeIds`) `StringComparer.OrdinalIgnoreCase`; auch `Equals`/`GetHashCode` von `TimeZoneInfo` vergleichen IDs ignore-case. Ab .NET 8 liefert `FindSystemTimeZoneById` gecachte Instanzen. (https://learn.microsoft.com/en-us/dotnet/api/system.timezoneinfo.findsystemtimezonebyid?view=net-10.0, https://github.com/dotnet/runtime/blob/main/src/libraries/System.Private.CoreLib/src/System/TimeZoneInfo.cs)
-- **Unix-Dateilookup ist dagegen case-sensitiv:** Bei Cache-Miss wird `Path.Combine(<tzdir>, id)` gelesen (erlaubte Zeichen nur `[A-Za-z0-9/_-]`, keine gerooteten Pfade). Folge: `"europe/warsaw"` scheitert auf Linux beim ersten Aufruf, kann aber treffen, sobald `Europe/Warsaw` bereits im case-insensitiven Cache liegt (z. B. nach `GetSystemTimeZones()`) – **zustandsabhängiges Verhalten**. Für das Python-Verhalten (nur exakter Key) muss daher zusätzlich `string.Equals(tz.Id, input, StringComparison.Ordinal)` bzw. Abgleich gegen eine eigene ID-Menge geprüft werden. (https://github.com/dotnet/runtime/blob/main/src/libraries/System.Private.CoreLib/src/System/TimeZoneInfo.Unix.NonAndroid.cs)
-- **Windows-IDs auf Linux/macOS und IANA-IDs auf Windows** werden über die ICU-Mapping-Tabelle als „alternative IDs“ akzeptiert; die zurückgegebene Instanz trägt dann die **angefragte** ID (z. B. `Id == "W. Europe Standard Time"`, `HasIanaId == false`). Exakte IANA-Validierung muss Windows-IDs also selbst ablehnen (`HasIanaId` prüfen). Auf Windows funktionieren IANA-IDs nur ohne NLS-Modus und ohne Invariant-Mode. (dto.; Learn-Seite FindSystemTimeZoneById)
-- **Backward-Links** wie `US/Eastern` sind auf Linux eigene Dateien in `/usr/share/zoneinfo` (sofern das tzdata-Paket sie installiert) und werden daher gefunden; Python `zoneinfo` mit `tzdata` akzeptiert sie ebenfalls → Parität hängt vom OS-Paket ab.
-- **Enumeration:** `GetSystemTimeZones()` liest auf Unix die IDs aus `zone.tab` (unter `TZDIR` oder `/usr/share/zoneinfo`) – das sind nur kanonische Zonen mit Länderzuordnung, **nicht** alle gültigen Keys (fehlend z. B. `UTC`-Aliase außer dem eingebauten `UTC`, `Etc/GMT+5`, Backward-Links). Als „Menge gültiger Keys“ ist es daher ungeeignet; Python `zoneinfo.available_timezones()` liefert mehr. (TimeZoneInfo.Unix.cs, dto.)
-- **Lokale Zone (tzlocal-Ersatz):** Unix: `TZ`-Umgebungsvariable, sonst `/etc/localtime` (Symlink-Ziel liefert die IANA-ID), sonst UTC. Windows: Registry-Zone mit Windows-ID → per `TimeZoneInfo.TryConvertWindowsIdToIanaId(id, out iana)` in IANA umrechnen (benötigt ICU; mit optionalem Region-Parameter). `TimeZoneInfo.Local.HasIanaId` zeigt, ob Konvertierung nötig ist. (TimeZoneInfo.Unix.NonAndroid.cs; https://learn.microsoft.com/dotnet/api/system.timezoneinfo)
-- **Zwei Invariant-Schalter:** (1) `InvariantGlobalization` (`DOTNET_SYSTEM_GLOBALIZATION_INVARIANT`) – deaktiviert ICU → kein IANA↔Windows-Mapping, IDs ohne alternative Auflösung; (2) **`System.TimeZoneInfo.Invariant`** Feature-Switch (`DOTNET_SYSTEM_TIMEZONE_INVARIANT`) – dann existiert **nur UTC**, `Local` = UTC, jeder andere Lookup → `TimeZoneNotFoundException`. Beides darf für diesen Server nicht aktiv sein (bzw. nur (1), wenn Windows-ID-Konvertierung verzichtbar ist). (https://github.com/dotnet/runtime/blob/main/src/libraries/System.Private.CoreLib/src/System/TimeZoneInfo.cs)
-- DST-Randfälle: `IsInvalidTime`, `IsAmbiguousTime`, `GetAmbiguousTimeOffsets` (siehe BROAD). `IsDaylightSavingTime` liefert nur `bool`; die DST-Differenz (Lord Howe: 30 min) muss als `GetUtcOffset(t) - BaseUtcOffset` berechnet werden – Achtung: `BaseUtcOffset` ist der *aktuelle* Standard-Offset, bei historischen Änderungen des Standard-Offsets nicht zwingend korrekt. In diesem Lauf nicht empirisch getestet (kein .NET-SDK in der Recherche-Umgebung).
+- **Lookup is case-insensitive.** According to the API docs, `id` must match exactly in length but not in case. In the runtime code, all caches (`_systemTimeZones`, `_timeZonesUsingAlternativeIds`) use `StringComparer.OrdinalIgnoreCase`; `Equals`/`GetHashCode` of `TimeZoneInfo` also compare IDs ignoring case. Since .NET 8, `FindSystemTimeZoneById` returns cached instances. (https://learn.microsoft.com/en-us/dotnet/api/system.timezoneinfo.findsystemtimezonebyid?view=net-10.0, https://github.com/dotnet/runtime/blob/main/src/libraries/System.Private.CoreLib/src/System/TimeZoneInfo.cs)
+- **The Unix file lookup, in contrast, is case-sensitive:** On a cache miss, `Path.Combine(<tzdir>, id)` is read (allowed characters only `[A-Za-z0-9/_-]`, no rooted paths). Consequence: `"europe/warsaw"` fails on Linux on the first call, but can hit as soon as `Europe/Warsaw` is already in the case-insensitive cache (for example after `GetSystemTimeZones()`) – **state-dependent behavior**. To match the Python behavior (exact key only), `string.Equals(tz.Id, input, StringComparison.Ordinal)` or a comparison against a custom ID set must therefore be checked as well. (https://github.com/dotnet/runtime/blob/main/src/libraries/System.Private.CoreLib/src/System/TimeZoneInfo.Unix.NonAndroid.cs)
+- **Windows IDs on Linux/macOS and IANA IDs on Windows** are accepted as "alternative IDs" via the ICU mapping table; the returned instance then carries the **requested** ID (for example `Id == "W. Europe Standard Time"`, `HasIanaId == false`). Exact IANA validation must therefore reject Windows IDs itself (check `HasIanaId`). On Windows, IANA IDs work only without NLS mode and without invariant mode. (same; Learn page FindSystemTimeZoneById)
+- **Backward links** such as `US/Eastern` are separate files in `/usr/share/zoneinfo` on Linux (if the tzdata package installs them) and are therefore found; Python `zoneinfo` with `tzdata` accepts them too → parity depends on the OS package.
+- **Enumeration:** On Unix, `GetSystemTimeZones()` reads the IDs from `zone.tab` (under `TZDIR` or `/usr/share/zoneinfo`) – these are only canonical zones with a country assignment, **not** all valid keys (missing, for example, `UTC` aliases other than the built-in `UTC`, `Etc/GMT+5`, backward links). It is therefore unsuitable as a "set of valid keys"; Python `zoneinfo.available_timezones()` returns more. (TimeZoneInfo.Unix.cs, same)
+- **Local zone (tzlocal replacement):** Unix: `TZ` environment variable, otherwise `/etc/localtime` (the symlink target gives the IANA ID), otherwise UTC. Windows: registry zone with a Windows ID → convert to IANA with `TimeZoneInfo.TryConvertWindowsIdToIanaId(id, out iana)` (needs ICU; with an optional region parameter). `TimeZoneInfo.Local.HasIanaId` shows whether a conversion is needed. (TimeZoneInfo.Unix.NonAndroid.cs; https://learn.microsoft.com/dotnet/api/system.timezoneinfo)
+- **Two invariant switches:** (1) `InvariantGlobalization` (`DOTNET_SYSTEM_GLOBALIZATION_INVARIANT`) – disables ICU → no IANA↔Windows mapping, IDs without alternative resolution; (2) the **`System.TimeZoneInfo.Invariant`** feature switch (`DOTNET_SYSTEM_TIMEZONE_INVARIANT`) – then **only UTC** exists, `Local` = UTC, every other lookup → `TimeZoneNotFoundException`. Neither may be active for this server (or only (1), if the Windows ID conversion can be dropped). (https://github.com/dotnet/runtime/blob/main/src/libraries/System.Private.CoreLib/src/System/TimeZoneInfo.cs)
+- DST edge cases: `IsInvalidTime`, `IsAmbiguousTime`, `GetAmbiguousTimeOffsets` (see BROAD). `IsDaylightSavingTime` returns only `bool`; the DST difference (Lord Howe: 30 min) has to be computed as `GetUtcOffset(t) - BaseUtcOffset` – note: `BaseUtcOffset` is the *current* standard offset and is not necessarily correct after historical changes of the standard offset. Not tested empirically in this run (no .NET SDK in the research environment).
 
-### DEEP: NodaTime 3.3.6 – Version, tzdb, Abwägung für diese App
+### DEEP: NodaTime 3.3.6 – version, tzdb, trade-off for this app
 
-- **Aktuell 3.3.6 (22.10.2026)**, gebündelte tzdb **2026e**; 3.3.6 aktualisiert zusätzlich das Windows-Mapping auf CLDR v49. Die 3.3.x-Linie liefert tzdb-Updates zeitnah als Patch-Release (3.3.1 → 2026a, 3.3.2 → 2026b, 3.3.3 → 2026c, 3.3.4 → 2026d, 3.3.5 → 2026e). 3.3.0 (03.01.2026) hat das net6.0-Target entfernt. (https://nodatime.org/versions, https://nodatime.org/)
-- **`TimeProvider`-Interop** existiert seit 3.2.0 (Extension-Methoden, nur im .NET-8+-Target) – damit lässt sich `FakeTimeProvider` auch mit NodaTime als einheitliche Testuhr nutzen (Details der API in diesem Lauf nicht nachgelesen). (https://nodatime.org/versions)
-- **tzdb-Herkunft:** OS-unabhängig, im Assembly eingebettet (vergleichbar zu Python `tzdata`); Aktualität hängt am Paket-Update statt am OS-Patchstand. Die IANA-Releases 2026c–2026e zeigen, dass 2026 mehrere tz-Änderungen erschienen sind (→ OS-tzdata in Containern/Windows kann hinterherhinken). (https://www.iana.org/time-zones/releases/2026e)
-- **Für diese App relevante Eigenschaften** (Quellen siehe BROAD): `MapLocal` → `ZoneLocalMapping.Count` 0 (Lücke)/1/2 (Überlappung) liefert die Flags „nonexistent“/„ambiguous“ direkt; `ZonedDateTime.IsDaylightSavingTime()` und `GetZoneInterval(instant).Savings` liefern die DST-Differenz als `Offset` (für Lord Howe +00:30) – das entspricht Pythons `dst()` genauer als `TimeZoneInfo` (nur `bool`). `DateTimeZoneProviders.Tzdb.GetZoneOrNull(id)` für Lookup ohne Exception; `Tzdb.Ids` als Menge gültiger Keys (enthält nach meinem Kenntnisstand auch Aliase wie `US/Eastern`; Groß-/Kleinschreibungs-Verhalten in diesem Lauf **nicht verifiziert**).
-- **Gegenüberstellung (gesammelt, Entscheidung in DISTILL):** NodaTime = +1 Abhängigkeit, reproduzierbare tzdb identisch auf allen OS und in jedem Container (auch chiseled/Alpine ohne tzdata), exakte ID-Menge, DST-Savings als Wert, eigener Resolver-Mechanismus; `TimeZoneInfo` = keine Abhängigkeit, aber OS-tzdb, case-insensitive/zustandsabhängiger Lookup, Windows-ID-Aliase, ICU-Pflicht für Mapping, `zone.tab`-Enumeration unvollständig.
+- **Current 3.3.6 (22.10.2026)**, bundled tzdb **2026e**; 3.3.6 also updates the Windows mapping to CLDR v49. The 3.3.x line ships tzdb updates promptly as patch releases (3.3.1 → 2026a, 3.3.2 → 2026b, 3.3.3 → 2026c, 3.3.4 → 2026d, 3.3.5 → 2026e). 3.3.0 (03.01.2026) removed the net6.0 target. (https://nodatime.org/versions, https://nodatime.org/)
+- **`TimeProvider` interop** exists since 3.2.0 (extension methods, .NET 8+ target only) – so `FakeTimeProvider` can be used with NodaTime as a single test clock (API details not read in this run). (https://nodatime.org/versions)
+- **tzdb origin:** OS-independent, embedded in the assembly (comparable to Python `tzdata`); freshness depends on the package update rather than the OS patch level. The IANA releases 2026c–2026e show that several tz changes appeared in 2026 (→ OS tzdata in containers/Windows can lag behind). (https://www.iana.org/time-zones/releases/2026e)
+- **Properties relevant for this app** (sources see BROAD): `MapLocal` → `ZoneLocalMapping.Count` 0 (gap)/1/2 (overlap) delivers the flags "nonexistent"/"ambiguous" directly; `ZonedDateTime.IsDaylightSavingTime()` and `GetZoneInterval(instant).Savings` deliver the DST difference as an `Offset` (+00:30 for Lord Howe) – this matches Python's `dst()` more closely than `TimeZoneInfo` (only `bool`). `DateTimeZoneProviders.Tzdb.GetZoneOrNull(id)` for lookup without an exception; `Tzdb.Ids` as the set of valid keys (to my knowledge it also contains aliases such as `US/Eastern`; case-sensitivity behavior **not verified** in this run).
+- **Comparison (collected, decision in DISTILL):** NodaTime = +1 dependency, reproducible tzdb identical on all OSes and in every container (even chiseled/Alpine without tzdata), exact ID set, DST savings as a value, its own resolver mechanism; `TimeZoneInfo` = no dependency, but OS tzdb, case-insensitive/state-dependent lookup, Windows ID aliases, ICU required for the mapping, incomplete `zone.tab` enumeration.
 
-### DEEP: Packaging – Tool-Paket, Container, MCPB
+### DEEP: Packaging – tool package, container, MCPB
 
-- **csproj der offiziellen Vorlage** (dotnet/docs PR 49301, Sample `SampleMcpServer.csproj`): `PackAsTool=true`, `PackageType=McpServer` (aktiviert den „MCP Server“-Tab auf NuGet.org), `RuntimeIdentifiers=win-x64;win-arm64;osx-arm64;linux-x64;linux-arm64;linux-musl-x64`, `SelfContained=true`, `PublishSelfContained=true`, `PublishSingleFile=true`. `ToolCommandName`, `PublishAot` und das Packen von `.mcp/server.json` sind im Diff nicht ausgeschrieben (Datei wird per Code-Embed eingebunden) → beim Scaffolden mit `dotnet new mcpserver` am erzeugten Projekt ablesen. Ergebnis: ein Zeiger-Paket plus je RID ein Paket; `dnx` lädt das passende. (https://github.com/dotnet/docs/pull/49301/files, https://learn.microsoft.com/dotnet/ai/quickstarts/build-mcp-server)
-- **Self-contained pro RID** bedeutet: Der Server bringt seine Runtime mit, nutzt aber weiterhin **OS-tzdata und OS-ICU** (bei `TimeZoneInfo`). `linux-musl-x64` (Alpine) hat oft weder tzdata noch ICU → bei `TimeZoneInfo` Fehlerquelle, bei NodaTime nur ICU-relevant (Kultur), nicht für Zeitzonen.
-- **Container .NET 10:** Default-Tags (`10.0`) sind ab .NET 10 **Ubuntu 24.04 „noble“**; Debian-Images gibt es für .NET 10 nicht mehr. Ubuntu-Vollimages enthalten ICU und tzdata; chiseled-Basis und `-aot` enthalten **weder tzdata noch ICU**, `-chiseled-extra` enthält beides (Schema aus .NET-8-Doku, für noble analog angenommen). Für stdio im Container `docker run -i --rm`. (https://learn.microsoft.com/dotnet/core/compatibility/containers/10.0/default-images-use-ubuntu, https://learn.microsoft.com/dotnet/core/docker/container-images)
-- **MCPB:** `MANIFEST.md` nennt als aktuelle Spec-Version **`manifest_version: "0.3"`**; Server-Typ `uv` ist neu ab **0.4** (Python-spezifisch). Für .NET ist `server.type: "binary"` passend, mit `compatibility.platforms` (`darwin`, `win32`, `linux`) und `platform_overrides` für plattformspezifische `command`-Pfade – also ein Bundle mit mehreren self-contained/AOT-Binaries oder je Plattform ein Bundle. (https://github.com/modelcontextprotocol/mcpb/blob/main/MANIFEST.md)
+- **csproj of the official template** (dotnet/docs PR 49301, sample `SampleMcpServer.csproj`): `PackAsTool=true`, `PackageType=McpServer` (enables the "MCP Server" tab on NuGet.org), `RuntimeIdentifiers=win-x64;win-arm64;osx-arm64;linux-x64;linux-arm64;linux-musl-x64`, `SelfContained=true`, `PublishSelfContained=true`, `PublishSingleFile=true`. `ToolCommandName`, `PublishAot` and packing `.mcp/server.json` are not spelled out in the diff (the file is included by code embed) → read them from the generated project when scaffolding with `dotnet new mcpserver`. Result: one pointer package plus one package per RID; `dnx` downloads the matching one. (https://github.com/dotnet/docs/pull/49301/files, https://learn.microsoft.com/dotnet/ai/quickstarts/build-mcp-server)
+- **Self-contained per RID** means: The server brings its own runtime but still uses **OS tzdata and OS ICU** (with `TimeZoneInfo`). `linux-musl-x64` (Alpine) often has neither tzdata nor ICU → a source of errors with `TimeZoneInfo`, only ICU-relevant (culture) with NodaTime, not for time zones.
+- **Container .NET 10:** Default tags (`10.0`) are **Ubuntu 24.04 "noble"** from .NET 10; there are no Debian images for .NET 10 any more. Full Ubuntu images contain ICU and tzdata; chiseled base and `-aot` contain **neither tzdata nor ICU**, `-chiseled-extra` contains both (scheme from the .NET 8 docs, assumed analogous for noble). For stdio in a container, use `docker run -i --rm`. (https://learn.microsoft.com/dotnet/core/compatibility/containers/10.0/default-images-use-ubuntu, https://learn.microsoft.com/dotnet/core/docker/container-images)
+- **MCPB:** `MANIFEST.md` names **`manifest_version: "0.3"`** as the current spec version; server type `uv` is new from **0.4** (Python-specific). For .NET, `server.type: "binary"` fits, with `compatibility.platforms` (`darwin`, `win32`, `linux`) and `platform_overrides` for platform-specific `command` paths – so one bundle with several self-contained/AOT binaries, or one bundle per platform. (https://github.com/modelcontextprotocol/mcpb/blob/main/MANIFEST.md)
 
-### DEEP: Tests – Plattform, Frameworks, Fake-Clock
+### DEEP: Tests – platform, frameworks, fake clock
 
-- **VSTest vs. Microsoft.Testing.Platform (MTP):** MTP ist executable-first (Testprojekt läuft wie eine App, `dotnet run`/`dotnet watch`), unterstützt Native AOT/Trimming. MTP-Support: MSTest, NUnit, **xUnit v3** (v2 nur VSTest), **TUnit (nur MTP)**. Empfehlung: pro Repo nur eine Plattform. (https://learn.microsoft.com/en-us/dotnet/core/testing/test-platforms-overview)
-- **`dotnet test` in .NET 10:** Default bleibt VSTest; nativer MTP-Modus per `global.json` (Schlüssel `test.runner = "Microsoft.Testing.Platform"` – Schlüsselname nicht direkt in der Primärquelle gesehen, gegen global.json-Referenz prüfen); erfordert .NET 10 SDK und MTP ≥ 1.7; dann müssen **alle** Testprojekte MTP nutzen. Exit-Code 8 bei null Tests. (https://learn.microsoft.com/ar-sa/dotnet/core/tools/dotnet-test-mtp, https://devblogs.microsoft.com/dotnet/dotnet-test-with-mtp/)
-- **End-to-End-Tests gegen den MCP-Server:** Das SDK-Repo enthält ein `InMemoryTransport`-Sample und `TestServerWithHosting` – Muster, um mit `McpClient` in-process `tools/list`/`tools/call` zu prüfen, inkl. beider Protokoll-Ären (`McpClientOptions.ProtocolVersion` pinnen). (https://github.com/modelcontextprotocol/csharp-sdk/tree/main/samples)
-- **Fake-Clock:** `FakeTimeProvider` (`Microsoft.Extensions.TimeProvider.Testing`) inkl. `SetLocalTimeZone` (BROAD); NodaTime hat `TimeProvider`-Interop seit 3.2 – eine einzige Testuhr reicht für beide Varianten.
+- **VSTest vs. Microsoft.Testing.Platform (MTP):** MTP is executable-first (the test project runs like an app, `dotnet run`/`dotnet watch`) and supports native AOT/trimming. MTP support: MSTest, NUnit, **xUnit v3** (v2 only VSTest), **TUnit (MTP only)**. Recommendation: only one platform per repo. (https://learn.microsoft.com/en-us/dotnet/core/testing/test-platforms-overview)
+- **`dotnet test` in .NET 10:** The default stays VSTest; native MTP mode via `global.json` (key `test.runner = "Microsoft.Testing.Platform"` – key name not seen directly in the primary source, check against the global.json reference); requires the .NET 10 SDK and MTP ≥ 1.7; then **all** test projects must use MTP. Exit code 8 for zero tests. (https://learn.microsoft.com/ar-sa/dotnet/core/tools/dotnet-test-mtp, https://devblogs.microsoft.com/dotnet/dotnet-test-with-mtp/)
+- **End-to-end tests against the MCP server:** The SDK repo contains an `InMemoryTransport` sample and `TestServerWithHosting` – patterns for checking `tools/list`/`tools/call` in-process with `McpClient`, including both protocol eras (pin `McpClientOptions.ProtocolVersion`). (https://github.com/modelcontextprotocol/csharp-sdk/tree/main/samples)
+- **Fake clock:** `FakeTimeProvider` (`Microsoft.Extensions.TimeProvider.Testing`) including `SetLocalTimeZone` (BROAD); NodaTime has `TimeProvider` interop since 3.2 – a single test clock is enough for both variants.
 
-### DEEP: C# 14 / .NET 10 – für diese App nützlich
+### DEEP: C# 14 / .NET 10 – useful for this app
 
-- C# 14 ist die Sprachversion von .NET 10. Relevante Features: **Extension members** (`extension(...)`-Blöcke, z. B. Extension-Properties auf `TimeZoneInfo`/`DateTimeOffset`), **`field`-Keyword** (Validierung im Property-Setter ohne Backing-Field), **Null-conditional assignment** (`x?.Prop = …`), `nameof` mit ungebundenen Generics, **File-based apps** (`dotnet run app.cs` mit `#:package`-Direktiven; das SDK-Repo hat dazu ein `FileBasedMcpServer`-Sample – für einen Mini-Server eine mögliche, aber für Packaging/Tests ungewöhnliche Form). (https://learn.microsoft.com/en-us/dotnet/csharp/whats-new/csharp-14, https://github.com/modelcontextprotocol/csharp-sdk/tree/main/samples/FileBasedMcpServer)
-- Das SDK-Repo selbst baut mit `LangVersion preview`; als Konsument reicht C# 14.
+- C# 14 is the language version of .NET 10. Relevant features: **extension members** (`extension(...)` blocks, for example extension properties on `TimeZoneInfo`/`DateTimeOffset`), **`field` keyword** (validation in a property setter without a backing field), **null-conditional assignment** (`x?.Prop = …`), `nameof` with unbound generics, **file-based apps** (`dotnet run app.cs` with `#:package` directives; the SDK repo has a `FileBasedMcpServer` sample for this – a possible form for a mini server, but unusual for packaging/tests). (https://learn.microsoft.com/en-us/dotnet/csharp/whats-new/csharp-14, https://github.com/modelcontextprotocol/csharp-sdk/tree/main/samples/FileBasedMcpServer)
+- The SDK repo itself builds with `LangVersion preview`; C# 14 is enough for a consumer.
 
-## Fallstricke & Breaking Changes
+## Pitfalls & breaking changes
 
 **MCP SDK**
-- Annotation-Defaults `Destructive = true`, `OpenWorld = true`, `ReadOnly = false`, `Idempotent = false` – für read-only Tools alle vier explizit setzen (Quellcode 2.3 bestätigt).
-- Unbekanntes Tool → `McpProtocolException` mit -32602 (Parität zu Python gegeben); `McpProtocolException` aus Tool-Code wird ebenfalls als JSON-RPC-Fehler durchgereicht – für fachliche Fehler also **nicht** `McpProtocolException` werfen.
-- `McpException` aus dem Tool → `isError`, aber mit SDK-Präfix `An error occurred invoking '<tool>': …`; andere Exceptions → nur generischer Text. Exakte Fehlertexte nur über selbst gebautes `CallToolResult { IsError = true }`.
-- Eingaben werden nicht gegen das Schema validiert; Validierung im Tool.
-- v2: `structuredContent` bei primitiven Rückgabetypen ungewrappt; `Tool.inputSchema` Pflicht.
-- Ären: `initialize` nach etablierter 2026-07-28-Sitzung → -32601; `server/discover` ohne `_meta`-Version → -32602; `ping` in 2026-07-28 entfernt.
-- Reflection-basierte Discovery (`WithToolsFromAssembly`) und eigene Typen ohne `JsonSerializerContext` sind bei Native AOT/Trimming problematisch, obwohl das SDK selbst `IsAotCompatible` ist.
-- stdout ist exklusiv für JSON-RPC – Logging auf stderr.
+- Annotation defaults `Destructive = true`, `OpenWorld = true`, `ReadOnly = false`, `Idempotent = false` – set all four explicitly for read-only tools (confirmed by the 2.3 source code).
+- Unknown tool → `McpProtocolException` with -32602 (parity with Python given); `McpProtocolException` from tool code is also passed through as a JSON-RPC error – so do **not** throw `McpProtocolException` for business errors.
+- `McpException` from the tool → `isError`, but with the SDK prefix `An error occurred invoking '<tool>': …`; other exceptions → generic text only. Exact error texts only via a self-built `CallToolResult { IsError = true }`.
+- Inputs are not validated against the schema; validate in the tool.
+- v2: `structuredContent` is unwrapped for primitive return types; `Tool.inputSchema` is required.
+- Eras: `initialize` after an established 2026-07-28 session → -32601; `server/discover` without a `_meta` version → -32602; `ping` removed in 2026-07-28.
+- Reflection-based discovery (`WithToolsFromAssembly`) and custom types without a `JsonSerializerContext` are problematic with native AOT/trimming, even though the SDK itself is `IsAotCompatible`.
+- stdout is exclusively for JSON-RPC – log to stderr.
 
-**Zeitzonen**
-- `FindSystemTimeZoneById` ist case-insensitive (Doku), auf Linux aber beim ersten Dateizugriff case-sensitiv → Ergebnis hängt vom Cache-Zustand ab. Exaktheit selbst prüfen (Ordinal-Vergleich mit `tz.Id`).
-- Windows-IDs werden überall (mit ICU) als Alias akzeptiert, `Id` ist dann die Windows-ID, `HasIanaId == false`.
-- `GetSystemTimeZones()` auf Linux = nur `zone.tab`-Einträge → keine vollständige Liste gültiger Keys.
-- `DOTNET_SYSTEM_TIMEZONE_INVARIANT` / Feature-Switch `System.TimeZoneInfo.Invariant` → nur UTC existiert; `InvariantGlobalization` → kein IANA↔Windows-Mapping (lokale Zone unter Windows nicht als IANA-ID ermittelbar).
-- `IsDaylightSavingTime` nur `bool`; DST-Differenz (Lord Howe 30 min) muss errechnet werden; `BaseUtcOffset` ist der aktuelle, nicht der historische Standard-Offset.
-- OS-tzdb-Stand variiert (2026 bereits IANA 2026a–e); NodaTime 3.3.6 bündelt 2026e.
+**Time zones**
+- `FindSystemTimeZoneById` is case-insensitive (docs), but case-sensitive on Linux at the first file access → the result depends on the cache state. Check exactness yourself (ordinal comparison with `tz.Id`).
+- Windows IDs are accepted as aliases everywhere (with ICU); `Id` is then the Windows ID, `HasIanaId == false`.
+- `GetSystemTimeZones()` on Linux = only `zone.tab` entries → not a complete list of valid keys.
+- `DOTNET_SYSTEM_TIMEZONE_INVARIANT` / feature switch `System.TimeZoneInfo.Invariant` → only UTC exists; `InvariantGlobalization` → no IANA↔Windows mapping (the local zone cannot be determined as an IANA ID on Windows).
+- `IsDaylightSavingTime` is `bool` only; the DST difference (Lord Howe 30 min) has to be computed; `BaseUtcOffset` is the current, not the historical, standard offset.
+- The OS tzdb level varies (IANA 2026a–e already in 2026); NodaTime 3.3.6 bundles 2026e.
 
-**Packaging/Container**
-- .NET-10-Default-Images = Ubuntu 24.04, keine Debian-Images mehr; chiseled/`-aot`/Alpine ohne tzdata und ICU.
-- RID `linux-musl-x64` (Alpine) im Template-Default → tzdata/ICU auf Zielsystem nicht garantiert.
-- Alle RID-spezifischen `.nupkg` müssen gepusht werden, sonst scheitert `dnx` auf der fehlenden Plattform.
-- MCPB `manifest_version` 0.3 (aktuell laut MANIFEST.md) vs. 0.4 (nur für `uv`-Typ nötig).
+**Packaging/container**
+- .NET 10 default images = Ubuntu 24.04, no Debian images any more; chiseled/`-aot`/Alpine without tzdata and ICU.
+- RID `linux-musl-x64` (Alpine) in the template default → tzdata/ICU on the target system not guaranteed.
+- All RID-specific `.nupkg` files must be pushed, otherwise `dnx` fails on the missing platform.
+- MCPB `manifest_version` 0.3 (current according to MANIFEST.md) vs. 0.4 (needed only for the `uv` type).
 
 **Tests**
-- MTP-Modus in `global.json` gilt für die ganze Lösung – VSTest-Projekte daneben sind ein Fehler; xUnit nur in v3 auf MTP.
+- MTP mode in `global.json` applies to the whole solution – VSTest projects next to it are an error; xUnit only in v3 on MTP.
 
-## Entscheidungen für diesen Rebuild
+## Decisions for this rebuild
 
-| # | Entscheidung | Befund | Quelle |
+| # | Decision | Finding | Source |
 |---|---|---|---|
-| D1 | `net10.0`, C# 14, kein Multi-Targeting | .NET 10 LTS bis 14.11.2028; .NET 8/9 enden 10.11.2026 | Versionen & Support |
-| D2 | MCP über `ModelContextProtocol` 2.3.x mit stdio-Transport im Generic Host | offizielles SDK, bedient beide Protokollgenerationen | SDK-Abschnitt, NuGet |
-| D3 | Zeitzonen mit **NodaTime 3.3.x** (gebündelte tzdb), nicht `TimeZoneInfo` | `TimeZoneInfo` ist case-insensitiv (unter Linux abhängig vom Cache), akzeptiert Windows-IDs, kennt keine vollständige Key-Liste und liefert Sommerzeit nur als bool; NodaTime liefert auf allen Plattformen identische Daten und `MapLocal` meldet Lücke/Überlappung direkt | Zeitzonen-Abschnitte, Fallstricke |
-| D4 | Exakte Prüfung: Name muss als Ordinal in `DateTimeZoneProviders.Tzdb.Ids` stehen, sonst „Invalid timezone“ | macht P3 auf allen Plattformen gleich; Pfade sind damit automatisch ungültig | NodaTime, Fallstricke |
-| D5 | Lokale Zone: `TimeZoneInfo.Local` → IANA-ID (unter Windows per `TryConvertWindowsIdToIanaId`) → in NodaTime prüfen, sonst `UTC`; `--local-timezone` hat Vorrang | Ersatz für `tzlocal` | TimeZoneInfo-Abschnitt |
-| D6 | Nicht existierende Ortszeit → eigener Fehler; doppeldeutige → frühere Abbildung (wie Original) über `MapLocal` | `ZoneLocalMapping.Count` 0/1/2 | NodaTime |
-| D7 | Fachfehler als selbst gebautes `CallToolResult { IsError = true }` mit eigenem Text – kein `McpException` | `McpException` bekommt ein SDK-Präfix, `McpProtocolException` würde ein JSON-RPC-Fehler | Fallstricke MCP SDK |
-| D8 | Unbekanntes Tool: SDK-Verhalten (-32602) nutzen, keine eigene Middleware | SDK 2.3 macht das bereits | Fallstricke MCP SDK |
-| D9 | Alle vier Annotations explizit setzen (readOnly, destructive=false, idempotent, openWorld=false) | SDK-Defaults sind destructive/openWorld = true | Fallstricke MCP SDK |
-| D10 | Eingaben im Tool selbst prüfen (leere/fehlende Felder, Formate) | SDK validiert nicht gegen das Schema | Fallstricke MCP SDK |
-| D11 | Ergebnisobjekte als `structuredContent` mit Ausgabeschema plus JSON-Textblock; Serialisierung mit System.Text.Json und `JsonSerializerContext` | Ergebnisform des Originals; hält Trimming/AOT offen | SDK-Abschnitt |
-| D12 | Tools explizit registrieren statt `WithToolsFromAssembly` | Reflection-Discovery ist bei Trimming/AOT problematisch | Fallstricke MCP SDK |
-| D13 | „Jetzt“ über `TimeProvider`; Tests mit `FakeTimeProvider`, Brücke zu NodaTime über deren `TimeProvider`-Interop | eine einzige Testuhr für BCL und NodaTime | Tests, NodaTime |
-| D14 | Tests mit xUnit v3 auf Microsoft.Testing.Platform (`global.json`), Snapshots von `tools/list` als eigener JSON-Vergleich im Testprojekt | MTP ist Standard in .NET 10. Befund: Verify ≥ 33 (nach 2026-09-01) verlangt eine Sponsoring-/Lizenz-Erklärung im Build (SponsorCheck SC021, Ausnahmen befristet auf 12 Monate); Entscheidung Nutzer 2026-10-23: kein Verify | Tests |
-| D15 | CLI mit `System.CommandLine` 2.0.x (stabil) | `--help`, unbekannte Optionen und Prüfung von `--local-timezone` ohne Eigenbau | CLI-Parsing |
-| D16 | Logging nur nach stderr; stdout gehört dem Transport | stdio-Regel | stdio-Hosting |
-| D17 | Auslieferung als `dotnet tool` (`PackAsTool`, `PackageType McpServer`, `.mcp/server.json`), Start per `dnx`; RID-spezifische Pakete nur, wenn alle gepusht werden | offizieller .NET-Weg, NuGet-MCP-Tab | Packaging |
-| D18 | Kein Container im ersten Release; falls später: Ubuntu-basiertes Image, nicht chiseled/Alpine | chiseled/Alpine ohne tzdata/ICU – mit NodaTime unkritisch, aber lokale Zone fehlt | Packaging/Container |
-| D19 | Native AOT optional später; Code von Anfang an trim-fähig (D11, D12) | kleiner Server profitiert vom Startverhalten, SDK ist AOT-fähig | SDK-Abschnitt |
-| D20 | Optionales `date` (YYYY-MM-DD) mit NodaTime `LocalDatePattern.Iso` strikt parsen | Verbesserung aus PRD; ISO-Format eindeutig | PRD, NodaTime |
+| D1 | `net10.0`, C# 14, no multi-targeting | .NET 10 LTS until 14.11.2028; .NET 8/9 end 10.11.2026 | Versions & support |
+| D2 | MCP via `ModelContextProtocol` 2.3.x with the stdio transport in the generic host | official SDK, serves both protocol generations | SDK section, NuGet |
+| D3 | Time zones with **NodaTime 3.3.x** (bundled tzdb), not `TimeZoneInfo` | `TimeZoneInfo` is case-insensitive (on Linux depending on the cache), accepts Windows IDs, has no complete key list and returns daylight saving time only as bool; NodaTime delivers identical data on all platforms and `MapLocal` reports gap/overlap directly | Time zone sections, pitfalls |
+| D4 | Exact check: the name must be in `DateTimeZoneProviders.Tzdb.Ids` as an ordinal match, otherwise "Invalid timezone" | makes P3 identical on all platforms; paths are thereby automatically invalid | NodaTime, pitfalls |
+| D5 | Local zone: `TimeZoneInfo.Local` → IANA ID (on Windows via `TryConvertWindowsIdToIanaId`) → check in NodaTime, otherwise `UTC`; `--local-timezone` takes precedence | replacement for `tzlocal` | TimeZoneInfo section |
+| D6 | Skipped wall-clock time → own error; ambiguous → earlier mapping (as in the original) via `MapLocal` | `ZoneLocalMapping.Count` 0/1/2 | NodaTime |
+| D7 | Business errors as a self-built `CallToolResult { IsError = true }` with own text – no `McpException` | `McpException` gets an SDK prefix, `McpProtocolException` would become a JSON-RPC error | Pitfalls MCP SDK |
+| D8 | Unknown tool: use the SDK behavior (-32602), no own middleware | SDK 2.3 already does this | Pitfalls MCP SDK |
+| D9 | Set all four annotations explicitly (readOnly, destructive=false, idempotent, openWorld=false) | SDK defaults are destructive/openWorld = true | Pitfalls MCP SDK |
+| D10 | Check inputs in the tool itself (empty/missing fields, formats) | the SDK does not validate against the schema | Pitfalls MCP SDK |
+| D11 | Result objects as `structuredContent` with an output schema plus a JSON text block; serialization with System.Text.Json and `JsonSerializerContext` | result shape of the original; keeps trimming/AOT open | SDK section |
+| D12 | Register tools explicitly instead of `WithToolsFromAssembly` | reflection discovery is problematic with trimming/AOT | Pitfalls MCP SDK |
+| D13 | "Now" via `TimeProvider`; tests with `FakeTimeProvider`, bridge to NodaTime via its `TimeProvider` interop | a single test clock for BCL and NodaTime | Tests, NodaTime |
+| D14 | Tests with xUnit v3 on Microsoft.Testing.Platform (`global.json`), snapshots of `tools/list` as a custom JSON comparison in the test project | MTP is the standard in .NET 10. Finding: Verify ≥ 33 (after 2026-09-01) requires a sponsorship/license declaration in the build (SponsorCheck SC021, exemptions limited to 12 months); decision by the user 2026-10-23: no Verify | Tests |
+| D15 | CLI with `System.CommandLine` 2.0.x (stable) | `--help`, unknown options and the check of `--local-timezone` without a custom build | CLI parsing |
+| D16 | Log to stderr only; stdout belongs to the transport | stdio rule | stdio hosting |
+| D17 | Distribution as a `dotnet tool` (`PackAsTool`, `PackageType McpServer`, `.mcp/server.json`), started with `dnx`; RID-specific packages only if all are pushed | official .NET way, NuGet MCP tab | Packaging |
+| D18 | No container in the first release; if added later: Ubuntu-based image, not chiseled/Alpine | chiseled/Alpine without tzdata/ICU – uncritical with NodaTime, but the local zone is missing | Packaging/container |
+| D19 | Native AOT optional later; trim-ready code from the start (D11, D12) | a small server benefits from the startup behavior, the SDK is AOT-ready | SDK section |
+| D20 | Parse the optional `date` (YYYY-MM-DD) strictly with NodaTime `LocalDatePattern.Iso` | improvement from the PRD; the ISO format is unambiguous | PRD, NodaTime |
 
 
-### Vom Nutzer bestätigt (23.10.2026)
-- Zeitzonen mit NodaTime (D3).
-- Auslieferung als `dotnet tool` über `dnx` (D17); Container und AOT später optional (D18, D19).
+### Confirmed by the user (23.10.2026)
+- Time zones with NodaTime (D3).
+- Distribution as a `dotnet tool` via `dnx` (D17); container and AOT optional later (D18, D19).
 
-## Noch nicht abgedeckt
+## Not yet covered
 
-(Stand nach DEEP)
-- Release Notes 2.3.0 im Wortlaut (GitHub-API in dieser Sitzung gesperrt; Verhalten stattdessen aus Quellcode `main` mit `VersionPrefix 2.3.0` abgeleitet – Tag-Stand nicht verglichen).
-- Exaktes JSON-Schema, das `AIJsonUtilities.CreateJsonSchema` für einen Record mit nullable Properties/`[Description]` erzeugt (Vergleich zum pydantic-`outputSchema` des Originals) – empirisch mit SDK prüfen.
-- Verhalten bei fehlenden/falsch typisierten Argumenten (Binding-Fehler: `isError` vs. -32602) im SDK 2.3. – durch eigene `McpServerTool`-Klassen gegenstandslos: die Tools erhalten die Argumente roh und prüfen selbst (D10).
-- ~~NodaTime: Case-Sensitivity von `Tzdb.GetZoneOrNull` und ob `Tzdb.Ids` Aliase enthält; API der `TimeProvider`-Extensions.~~ Geklärt, siehe Slice-02-Befunde.
-- Empirischer Test der `TimeZoneInfo`-Randfälle (Lord Howe, Kathmandu, `europe/warsaw`, `US/Eastern`) auf Linux/Windows – keine .NET-Installation in der Recherche-Umgebung.
-- `global.json`-Schlüssel für MTP gegen global.json-Referenz verifizieren (geklärt, siehe Scaffold-Befunde / D14); xUnit-v3- vs. MSTest- vs. TUnit-Versionen; Verify-Lizenz/Sponsoring-Status (geklärt, siehe Scaffold-Befunde / D14).
-- ~~Template-Output `dotnet new mcpserver` (ToolCommandName, server.json-Packing).~~ Geklärt, siehe Slice-04-Befunde. Offen: AOT-Option; .NET-10-chiseled-Tag-Namen (`10.0-noble-chiseled-extra`) auf MCR verifizieren.
-- ~~CLI-Parsing (`System.CommandLine` vs. Host-Konfiguration) und Wechselwirkung mit `Host.CreateApplicationBuilder(args)`.~~ Geklärt, siehe Slice-04-Befunde.
-- Kulturunabhängige Formatierung (Wochentag englisch, ISO 8601) – BCL-Standardwissen, nicht vertieft.
+(As of after DEEP)
+- Release notes for 2.3.0 verbatim (GitHub API blocked in this session; behavior derived from the source code on `main` with `VersionPrefix 2.3.0` instead – tag state not compared).
+- The exact JSON schema that `AIJsonUtilities.CreateJsonSchema` produces for a record with nullable properties/`[Description]` (comparison with the pydantic `outputSchema` of the original) – check empirically with the SDK.
+- Behavior for missing or wrongly typed arguments (binding errors: `isError` vs. -32602) in SDK 2.3. – moot because of the custom `McpServerTool` classes: the tools receive the arguments raw and check them themselves (D10).
+- ~~NodaTime: case sensitivity of `Tzdb.GetZoneOrNull` and whether `Tzdb.Ids` contains aliases; API of the `TimeProvider` extensions.~~ Clarified, see slice 02 findings.
+- Empirical test of the `TimeZoneInfo` edge cases (Lord Howe, Kathmandu, `europe/warsaw`, `US/Eastern`) on Linux/Windows – no .NET installation in the research environment.
+- Verify the `global.json` key for MTP against the global.json reference (clarified, see Scaffold findings / D14); xUnit v3 vs. MSTest vs. TUnit versions; Verify license/sponsorship status (clarified, see Scaffold findings / D14).
+- ~~Template output of `dotnet new mcpserver` (ToolCommandName, server.json packing).~~ Clarified, see slice 04 findings. Open: AOT option; verify the .NET 10 chiseled tag names (`10.0-noble-chiseled-extra`) on MCR.
+- ~~CLI parsing (`System.CommandLine` vs. host configuration) and interaction with `Host.CreateApplicationBuilder(args)`.~~ Clarified, see slice 04 findings.
+- Culture-independent formatting (English weekday, ISO 8601) – standard BCL knowledge, not examined in depth.
 
-## Scaffold-Befunde (Slice 00)
+## Scaffold findings (slice 00)
 
-- xunit.v3 4.0.2 braucht `UseMicrosoftTestingPlatformRunner` + `OutputType Exe`, kein `Microsoft.NET.Test.Sdk`.
-- `global.json`-Schlüssel `test.runner = "Microsoft.Testing.Platform"` ist in der Microsoft-Doku (`global-json.md`) bestätigt.
-- xunit.v3 hat kein implizites `using Xunit` → `<Using Include="Xunit" />` in `tests/Directory.Build.props`.
-- Verify.XunitV3 33.3.4 hängt an `xunit.v3.extensibility.core` 4.0.2, bricht den Build aber mit SponsorCheck SC021 ohne Lizenz-Erklärung ab (32.0.1 bräuchte xunit.v3 3.2.2) → Entscheidung: eigener JSON-Snapshot.
-- NetArchTest.eNhancedEdition 1.4.5 (Mono.Cecil 0.11.6) bietet `FailingTypes`, nicht `FailingTypeNames`.
-- Eine `ProjectReference` auf eine Exe kopiert `McpTime.Host.dll` und `McpTime.Host.runtimeconfig.json` ins Testausgabeverzeichnis (geprüft).
-- Der Trim-Analyzer (`EnableTrimAnalyzer`) meldet nichts für `Host.CreateApplicationBuilder` + `AddConsole` + `AddMcpServer().WithStdioServerTransport()`.
-- Ein MCP-Server ohne Tools meldet die Fähigkeit `tools` nicht → `tools/list` ist „nicht verfügbar“; `WithListToolsHandler` mit leerem `ListToolsResult` ist der minimale Platzhalter (in Slice 01 durch die registrierten Tools ersetzt).
-- SDK 2.3.0 verhandelt auf demselben stdio-Server sowohl „2025-11-25“ als auch „2026-07-28“; `McpClient.NegotiatedProtocolVersion` zeigt, welche gilt.
+- xunit.v3 4.0.2 needs `UseMicrosoftTestingPlatformRunner` + `OutputType Exe`, no `Microsoft.NET.Test.Sdk`.
+- The `global.json` key `test.runner = "Microsoft.Testing.Platform"` is confirmed in the Microsoft docs (`global-json.md`).
+- xunit.v3 has no implicit `using Xunit` → `<Using Include="Xunit" />` in `tests/Directory.Build.props`.
+- Verify.XunitV3 33.3.4 depends on `xunit.v3.extensibility.core` 4.0.2 but breaks the build with SponsorCheck SC021 without a license declaration (32.0.1 would need xunit.v3 3.2.2) → decision: custom JSON snapshot.
+- NetArchTest.eNhancedEdition 1.4.5 (Mono.Cecil 0.11.6) offers `FailingTypes`, not `FailingTypeNames`.
+- A `ProjectReference` to an exe copies `McpTime.Host.dll` and `McpTime.Host.runtimeconfig.json` into the test output directory (checked).
+- The trim analyzer (`EnableTrimAnalyzer`) reports nothing for `Host.CreateApplicationBuilder` + `AddConsole` + `AddMcpServer().WithStdioServerTransport()`.
+- An MCP server without tools does not report the `tools` capability → `tools/list` is "not available"; `WithListToolsHandler` with an empty `ListToolsResult` is the minimal placeholder (replaced by the registered tools in slice 01).
+- SDK 2.3.0 negotiates both "2025-11-25" and "2026-07-28" on the same stdio server; `McpClient.NegotiatedProtocolVersion` shows which one applies.
 
-## Slice-01-Befunde (SDK 2.3.0, Quellcode main)
+## Slice 01 findings (SDK 2.3.0, source code main)
 
-- `McpServerTool` ist ableitbar: `protected` Konstruktor; abstrakt sind `Tool ProtocolTool`, `IReadOnlyList<object> Metadata` und `ValueTask<CallToolResult> InvokeAsync(RequestContext<CallToolRequestParams>, CancellationToken)`.
-- `WithTools(IEnumerable<McpServerTool>)` registriert fertige Instanzen ohne Reflection.
-- `ToolAnnotations` hat vier `bool?`-Hints (`readOnlyHint`, `destructiveHint`, `idempotentHint`, `openWorldHint`).
-- `Tool.InputSchema` ist `JsonElement`, `Tool.OutputSchema` ist `JsonElement?`.
-- `AddMcpServer(Action<McpServerOptions>)` setzt `ServerInfo` (`Implementation { Name, Version }`, beide `required`).
-- `McpProtocolException : McpException` trägt einen `ErrorCode`.
-- In 2026-07-28 weist `ValidateRequestMethodBoundary` `ping` mit -32601 ab, `initialize` auf einer modernen Sitzung ebenso.
-- Roh-Requests lassen sich im Test über `McpSession.SendRequestAsync(JsonRpcRequest)` senden.
-- stdin-EOF beendet den stdio-Transport sofort: Werden Requests gesendet und stdin direkt danach geschlossen, laufen die Handler noch (stderr zeigt `"get_current_time" completed`), aber auf stdout kommt keine Antwort mehr, Exit 0. Ein `echo … | dotnet run`-Test zeigt deshalb nichts; Roh-Tests müssen die Antwort abwarten, bevor sie stdin schließen (so macht es `RawStdioServer`).
+- `McpServerTool` can be derived from: `protected` constructor; abstract members are `Tool ProtocolTool`, `IReadOnlyList<object> Metadata` and `ValueTask<CallToolResult> InvokeAsync(RequestContext<CallToolRequestParams>, CancellationToken)`.
+- `WithTools(IEnumerable<McpServerTool>)` registers ready-made instances without reflection.
+- `ToolAnnotations` has four `bool?` hints (`readOnlyHint`, `destructiveHint`, `idempotentHint`, `openWorldHint`).
+- `Tool.InputSchema` is `JsonElement`, `Tool.OutputSchema` is `JsonElement?`.
+- `AddMcpServer(Action<McpServerOptions>)` sets `ServerInfo` (`Implementation { Name, Version }`, both `required`).
+- `McpProtocolException : McpException` carries an `ErrorCode`.
+- In 2026-07-28, `ValidateRequestMethodBoundary` rejects `ping` with -32601, and `initialize` on a modern session likewise.
+- Raw requests can be sent in a test via `McpSession.SendRequestAsync(JsonRpcRequest)`.
+- stdin EOF ends the stdio transport immediately: If requests are sent and stdin is closed right after, the handlers still run (stderr shows `"get_current_time" completed`), but no response arrives on stdout, exit 0. An `echo … | dotnet run` test therefore shows nothing; raw tests must wait for the response before they close stdin (this is what `RawStdioServer` does).
 
-## Slice-02-Befunde (NodaTime 3.3.6, tzdb 2026e, Probe)
+## Slice 02 findings (NodaTime 3.3.6, tzdb 2026e, probe)
 
-- `DateTimeZoneProviders.Tzdb.Ids` enthält 597 IDs inklusive Aliasen (`US/Eastern`, `GMT`, `Etc/UTC`, `Etc/GMT+5`, `UTC`); `Contains` vergleicht ordinal.
-- `europe/warsaw`, `../etc/passwd`, `/etc/localtime` und die leere Zeichenfolge sind nicht enthalten. `GetZoneOrNull` ist gleich streng.
-- Australia/Lord_Howe hat am 2024-01-01T12:00Z Savings +00:30 (`IsDaylightSavingTime()` true).
-- Europe/Dublin hat in der tzdb negative Sommerzeit: 2024-01-01T12:00Z Savings −01:00 (`is_dst` true), 2024-07-01T12:00Z Savings 0 (`false`).
-- Muster `uuuu'-'MM'-'dd'T'HH':'mm':'sso<+HH:mm>` gibt für UTC `+00:00` aus (nicht `Z`).
-- `NodaTime.Extensions.TimeProviderExtensions` existiert; genutzt wird stattdessen `Instant.FromDateTimeOffset(timeProvider.GetUtcNow())`.
+- `DateTimeZoneProviders.Tzdb.Ids` contains 597 IDs including aliases (`US/Eastern`, `GMT`, `Etc/UTC`, `Etc/GMT+5`, `UTC`); `Contains` compares ordinally.
+- `europe/warsaw`, `../etc/passwd`, `/etc/localtime` and the empty string are not included. `GetZoneOrNull` is equally strict.
+- Australia/Lord_Howe has savings +00:30 at 2024-01-01T12:00Z (`IsDaylightSavingTime()` true).
+- Europe/Dublin has negative daylight saving time in the tzdb: 2024-01-01T12:00Z savings −01:00 (`is_dst` true), 2024-07-01T12:00Z savings 0 (`false`).
+- The pattern `uuuu'-'MM'-'dd'T'HH':'mm':'sso<+HH:mm>` prints `+00:00` for UTC (not `Z`).
+- `NodaTime.Extensions.TimeProviderExtensions` exists; `Instant.FromDateTimeOffset(timeProvider.GetUtcNow())` is used instead.
 
-## Slice-03-Befunde (NodaTime 3.3.6, tzdb 2026e, Probe)
+## Slice 03 findings (NodaTime 3.3.6, tzdb 2026e, probe)
 
-- `LocalDatePattern.Iso` (`uuuu'-'MM'-'dd`) lehnt `2024-02-30`, `15.07.2024`, `+2024-01-01`, `2024-1-5`, ` 2024-01-01` und Vollbreiten-Ziffern (z. B. ２０２４) ab, **akzeptiert aber** `0000-01-01` (Jahr 0 = 1 v. Chr.) und `-0001-01-01` → zusätzlicher Bereich `0001-01-02` bis `9999-12-29`.
-- `(new LocalDate(9999,12,31) + new LocalTime(23,59))` in UTC, dann `.ToInstant().InZone(Pacific/Kiritimati)` wirft `ArgumentOutOfRangeException` („daysSinceEpoch“) → der Bereich endet am 9999-12-29: Die Offsets reichen im Jahr 9999 von −12 h bis +14 h (Spreizung 26 h). Pago_Pago 9999-12-30 23:59 → Kiritimati läge bei 10000-01-01T00:59 und wirft ebenfalls; 9999-12-29 23:59 von `Etc/GMT+12` nach Kiritimati ergibt `9999-12-31T01:59:00+14:00` (+26.0h).
-- Untergrenze `0001-01-02`: kein Überlauf möglich (NodaTime reicht bis Jahr −9998). Im Jahr 1 gelten LMT-Offsets von `−15:56:08` (Asia/Manila) bis `+15:13:42` (America/Metlakatla), Spreizung rund 31 h; das Ergebnis kann daher im Jahr 0000 liegen (z. B. America/Adak 0001-01-02 00:00 → `0000-12-31T19:50:30-15:56:08`), gültig als astronomisches ISO-8601-Jahr. Gewählt als erster Tag nach 0001-01-01, damit `0000`/negative Eingaben ausgeschlossen bleiben. Abschluss-Review: alle 597 × 597 Zonenpaare an beiden Grenztagen um 00:00 und 23:59 ohne Exception (1.425.636 Fälle).
-- `America/New_York`: 2024-03-10 02:30 → `MapLocal` Count 0 (übersprungen); 2024-11-03 01:30 → Count 2, `First()` = `2024-11-03T01:30:00-04:00`.
-- Historische Ortszeit: Europe/Vienna 1850-01-01 12:00 hat Offset `+01:05:21` (3921 s), Asia/Kolkata 1900-01-01 12:00 `+05:21:10`. Das Muster `o<+HH:mm>` kürzt auf `+01:05`; `o<+HH:mm:ss>` gibt `+01:05:21` aus → Sekunden nur, wenn der Offset welche hat.
-- .NET-`\d` trifft auch arabisch-indische Ziffern (`١٢`) → `[0-9]`; `$` trifft vor einem abschließenden `\n` → `\z`.
-- Rundung der Zeitdifferenz: −18 s ergibt −0,005 h und mit `AwayFromZero` −0,01 h (nicht `+0.0h`); der Test für „nie `-0.0h`“ nutzt deshalb −17 s.
+- `LocalDatePattern.Iso` (`uuuu'-'MM'-'dd`) rejects `2024-02-30`, `15.07.2024`, `+2024-01-01`, `2024-1-5`, ` 2024-01-01` and full-width digits (for example ２０２４), **but accepts** `0000-01-01` (year 0 = 1 BC) and `-0001-01-01` → additional range `0001-01-02` to `9999-12-29`.
+- `(new LocalDate(9999,12,31) + new LocalTime(23,59))` in UTC, then `.ToInstant().InZone(Pacific/Kiritimati)` throws `ArgumentOutOfRangeException` ("daysSinceEpoch") → the range ends on 9999-12-29: In year 9999 the offsets range from −12 h to +14 h (spread 26 h). Pago_Pago 9999-12-30 23:59 → Kiritimati would be at 10000-01-01T00:59 and also throws; 9999-12-29 23:59 from `Etc/GMT+12` to Kiritimati gives `9999-12-31T01:59:00+14:00` (+26.0h).
+- Lower limit `0001-01-02`: no overflow possible (NodaTime reaches down to year −9998). In year 1, LMT offsets from `−15:56:08` (Asia/Manila) to `+15:13:42` (America/Metlakatla) apply, a spread of about 31 h; the result can therefore fall in year 0000 (for example America/Adak 0001-01-02 00:00 → `0000-12-31T19:50:30-15:56:08`), valid as an astronomical ISO 8601 year. Chosen as the first day after 0001-01-01 so that `0000`/negative input stays excluded. Final review: all 597 × 597 zone pairs on both limit days at 00:00 and 23:59 without an exception (1,425,636 cases).
+- `America/New_York`: 2024-03-10 02:30 → `MapLocal` count 0 (skipped); 2024-11-03 01:30 → count 2, `First()` = `2024-11-03T01:30:00-04:00`.
+- Historical local time: Europe/Vienna 1850-01-01 12:00 has offset `+01:05:21` (3921 s), Asia/Kolkata 1900-01-01 12:00 `+05:21:10`. The pattern `o<+HH:mm>` truncates to `+01:05`; `o<+HH:mm:ss>` prints `+01:05:21` → seconds only if the offset has any.
+- .NET `\d` also matches Arabic-Indic digits (`١٢`) → `[0-9]`; `$` matches before a trailing `\n` → `\z`.
+- Rounding of the time difference: −18 s gives −0.005 h and, with `AwayFromZero`, −0.01 h (not `+0.0h`); the test for "never `-0.0h`" therefore uses −17 s.
 
-## Slice-04-Befunde (System.CommandLine 2.0.13, Vorlage mcpserver, Probe)
+## Slice 04 findings (System.CommandLine 2.0.13, template mcpserver, probe)
 
-- System.CommandLine 2.0.13 (`new RootCommand(desc) { option }`, `root.SetAction(...)`, `root.Parse(args).Invoke()`): Parse-Fehler geben eine lokalisierte Meldung auf stderr und die Hilfe auf stdout aus, Exit 1; `--help` Exit 0; `--version` gibt die Assembly-Version aus.
-- `--local-timezone ""` ergibt den leeren Zeichenwert; `--local-timezone=` ist ein Parse-Fehler „fehlendes Argument“; eine wiederholte Option ist ein Parse-Fehler.
-- Der Host bekommt die Kommandozeile nicht: sie gehört System.CommandLine. Seit der Gesamtreview baut er per `Host.CreateEmptyApplicationBuilder(new HostApplicationBuilderSettings { DisableDefaults = true })` nur aus Umgebungsvariablen (z. B. `Logging__LogLevel__Default`), siehe unten.
-- `TimeZoneInfo.TryConvertWindowsIdToIanaId` bildet `W. Europe Standard Time` mit Region `AT` auf `Europe/Vienna` ab, mit Region `001` oder `""` auf `Europe/Berlin`. Unter `DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1` (Region dann `IV`) liefert es `false` ohne Exception → die Erkennung fällt auf UTC zurück.
-- Vorlage `dotnet new mcpserver` (2026, MCP SDK 2.1.0 in der Vorlage) erzeugt eine csproj mit `PackAsTool`, `PackageType McpServer`, `RuntimeIdentifiers` `win-x64;win-arm64;osx-arm64;linux-x64;linux-arm64;linux-musl-x64`, `SelfContained`, `PublishSingleFile`, `PackageReadmeFile` und packt `.mcp/server.json` nach `/.mcp/` (kein `ToolCommandName`).
-- `server.json`: Schema `https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json`, `packages[].registryType` `nuget`, `transport.type` `stdio`, dazu `packageArguments` und `environmentVariables`.
-- Paketierung (Task 3, SDK 10.0.402): `dotnet pack src/McpTime.Host -c Release -o artifacts/package` erzeugt `Vompa.McpTime.0.1.0.nupkg` (framework-abhängig, 1,88 MB). Inhalt: `.mcp/server.json`, `README.md`, `tools/net10.0/any/` mit `McpTime.Host.dll`, `McpTime.Host.runtimeconfig.json` (RollForward Major), `DotnetToolSettings.xml` und allen Abhängigkeiten inkl. System.CommandLine-Sprachordner; keine `runtimes/` außer dem Windows-EventLog des Hosting-Pakets.
-- dnx-Aufruf für einen lokalen Ordner: `dotnet dnx Vompa.McpTime --source artifacts/package --yes -- --help` (Exit 0, Hilfe des Tools). `--source` ersetzt alle Feeds. `dnx` allein ist in Git Bash nicht im PATH → `dotnet dnx`.
-- Argumente: Tool-Optionen, die dnx nicht kennt, gehen auch ohne `--` durch (`dnx Vompa.McpTime --source … --yes --local-timezone Not/AZone` → Fehlerzeile, Exit 1; die Reihenfolge ist egal). `--help` ohne `--` wird dagegen von dnx selbst verbraucht und zeigt dessen Hilfe → für `--help` (und `--version`) immer `--` setzen, im Smoke-Test und in der Client-Konfiguration einheitlich mit `--`.
-- Cache: dnx entpackt nach `~/.nuget/packages/vompa.mcptime/0.1.0`. Ein neu gepacktes Paket mit **gleicher Version** wird nicht erneut entpackt (Probe: andere `InformationalVersion`, `--version` zeigte weiter den alten Stand) → lokal die Version erhöhen oder den Ordner `vompa.mcptime/0.1.0` im Cache entfernen; auf frischen CI-Runnern kein Problem.
-- `server.json` gegen das Schema `2025-10-17` geprüft (Python `jsonschema` nicht installiert → eigenes Stdlib-Skript, das `$ref`, `allOf`, `anyOf`, `type`, `required`, `minLength`, `maxLength`, `pattern`, `enum`, `const` und `not` auswertet, 25 Prüfungen für `name`, `description`, `version`, `repository`, `packages[]`, `transport`, `packageArguments[]`; kein vollständiger Validator, Formate wie `uri` bleiben ungeprüft). Fund: `description` hatte 108 Zeichen bei `maxLength: 100` → auf 90 gekürzt; danach keine Verstöße.
-- Gesamtreview: `Host.CreateApplicationBuilder()` lädt `appsettings*.json` samt Datei-Watcher aus dem Arbeitsverzeichnis, in dem der MCP-Client das Tool startet (kaputte Datei = Absturz vor dem Transport) → `HostApplicationBuilderSettings { DisableDefaults = true }`, nur Umgebungsvariablen als Konfiguration, Logging aus Abschnitt `Logging` (`Logging__LogLevel__Default` geht weiter); die Konsolen-Lebensdauer (Ende bei stdin-EOF, Exit 0) bleibt erhalten, nichts nachzurüsten. Response-Dateien (`@datei`) von System.CommandLine sind per `ParserConfiguration.ResponseFileTokenReplacer = null` aus. Unter Windows existiert `dnx` nur als `dnx.cmd`; Clients ohne Shell (Claude Desktop, Node spawn) starten es nicht → Client-Konfiguration mit `"command": "dotnet"` und `"args": ["dnx", ...]`.
+- System.CommandLine 2.0.13 (`new RootCommand(desc) { option }`, `root.SetAction(...)`, `root.Parse(args).Invoke()`): Parse errors print a localized message to stderr and the help to stdout, exit 1; `--help` exit 0; `--version` prints the assembly version.
+- `--local-timezone ""` gives the empty string value; `--local-timezone=` is a parse error "missing argument"; a repeated option is a parse error.
+- The host does not get the command line: it belongs to System.CommandLine. Since the final review, the host is built with `Host.CreateEmptyApplicationBuilder(new HostApplicationBuilderSettings { DisableDefaults = true })` from environment variables only (for example `Logging__LogLevel__Default`), see below.
+- `TimeZoneInfo.TryConvertWindowsIdToIanaId` maps `W. Europe Standard Time` with region `AT` to `Europe/Vienna`, and with region `001` or `""` to `Europe/Berlin`. Under `DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1` (region then `IV`) it returns `false` without an exception → detection falls back to UTC.
+- The template `dotnet new mcpserver` (2026, MCP SDK 2.1.0 in the template) creates a csproj with `PackAsTool`, `PackageType McpServer`, `RuntimeIdentifiers` `win-x64;win-arm64;osx-arm64;linux-x64;linux-arm64;linux-musl-x64`, `SelfContained`, `PublishSingleFile`, `PackageReadmeFile` and packs `.mcp/server.json` to `/.mcp/` (no `ToolCommandName`).
+- `server.json`: schema `https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json`, `packages[].registryType` `nuget`, `transport.type` `stdio`, plus `packageArguments` and `environmentVariables`.
+- Packaging (task 3, SDK 10.0.402): `dotnet pack src/McpTime.Host -c Release -o artifacts/package` creates `Vompa.McpTime.0.1.0.nupkg` (framework-dependent, 1.88 MB). Contents: `.mcp/server.json`, `README.md`, `tools/net10.0/any/` with `McpTime.Host.dll`, `McpTime.Host.runtimeconfig.json` (RollForward Major), `DotnetToolSettings.xml` and all dependencies including the System.CommandLine language folders; no `runtimes/` except the Windows EventLog of the hosting package.
+- dnx call for a local folder: `dotnet dnx Vompa.McpTime --source artifacts/package --yes -- --help` (exit 0, help of the tool). `--source` replaces all feeds. `dnx` alone is not on the PATH in Git Bash → `dotnet dnx`.
+- Arguments: Tool options that dnx does not know pass through even without `--` (`dnx Vompa.McpTime --source … --yes --local-timezone Not/AZone` → error line, exit 1; the order does not matter). `--help` without `--`, in contrast, is consumed by dnx itself and shows its help → always put `--` before `--help` (and `--version`), and use `--` consistently in the smoke test and the client configuration.
+- Cache: dnx unpacks to `~/.nuget/packages/vompa.mcptime/0.1.0`. A newly packed package with the **same version** is not unpacked again (probe: different `InformationalVersion`, `--version` kept showing the old state) → raise the version locally or remove the folder `vompa.mcptime/0.1.0` from the cache; not a problem on fresh CI runners.
+- `server.json` checked against the schema `2025-10-17` (Python `jsonschema` not installed → own stdlib script that evaluates `$ref`, `allOf`, `anyOf`, `type`, `required`, `minLength`, `maxLength`, `pattern`, `enum`, `const` and `not`, 25 checks for `name`, `description`, `version`, `repository`, `packages[]`, `transport`, `packageArguments[]`; not a full validator, formats such as `uri` stay unchecked). Finding: `description` had 108 characters with `maxLength: 100` → shortened to 90; no violations afterwards.
+- Final review: `Host.CreateApplicationBuilder()` loads `appsettings*.json` including a file watcher from the working directory in which the MCP client starts the tool (a broken file = crash before the transport) → `HostApplicationBuilderSettings { DisableDefaults = true }`, only environment variables as configuration, logging from the `Logging` section (`Logging__LogLevel__Default` still works); the console lifetime (ends on stdin EOF, exit 0) is preserved, nothing to add. Response files (`@file`) of System.CommandLine are off via `ParserConfiguration.ResponseFileTokenReplacer = null`. On Windows, `dnx` exists only as `dnx.cmd`; clients without a shell (Claude Desktop, Node spawn) do not start it → client configuration with `"command": "dotnet"` and `"args": ["dnx", ...]`.
 
 
-## Quellen
+## Sources
 
 - .NET Support Policy: https://dotnet.microsoft.com/en-us/platform/support/policy/dotnet-core
-- .NET 8/9 Support-Ende (Forum-Meldung): https://www.elevenforum.com/t/net-8-and-net-9-will-reach-end-of-support-on-november-10-2026.47839/
+- .NET 8/9 end of support (forum post): https://www.elevenforum.com/t/net-8-and-net-9-will-reach-end-of-support-on-november-10-2026.47839/
 - NuGet ModelContextProtocol: https://www.nuget.org/packages/ModelContextProtocol/absoluteLatest
 - NuGet ModelContextProtocol.Core 2.1.0: https://www.nuget.org/packages/ModelContextProtocol.Core/2.1.0
-- Ankündigung MCP C# SDK v2.0: https://devblogs.microsoft.com/dotnet/announcing-v20-of-the-official-mcp-csharp-sdk/
-- csharp-sdk Releases: https://github.com/modelcontextprotocol/csharp-sdk/releases
-- csharp-sdk Repo: https://github.com/modelcontextprotocol/csharp-sdk
-- McpServerToolAttribute (v1-API-Doku): https://csharp.sdk.modelcontextprotocol.io/v1/api/ModelContextProtocol.Server.McpServerToolAttribute.html
+- Announcement MCP C# SDK v2.0: https://devblogs.microsoft.com/dotnet/announcing-v20-of-the-official-mcp-csharp-sdk/
+- csharp-sdk releases: https://github.com/modelcontextprotocol/csharp-sdk/releases
+- csharp-sdk repo: https://github.com/modelcontextprotocol/csharp-sdk
+- McpServerToolAttribute (v1 API docs): https://csharp.sdk.modelcontextprotocol.io/v1/api/ModelContextProtocol.Server.McpServerToolAttribute.html
 - McpServerToolCreateOptions: https://csharp.sdk.modelcontextprotocol.io/api/ModelContextProtocol.Server.McpServerToolCreateOptions.html
 - SDK Getting Started: https://csharp.sdk.modelcontextprotocol.io/v1/concepts/getting-started.html
 - TimeZoneInfo API: https://learn.microsoft.com/dotnet/api/system.timezoneinfo
 - TryConvertIanaIdToWindowsId: https://learn.microsoft.com/hu-hu/dotnet/api/system.timezoneinfo.tryconvertianaidtowindowsid?view=netcore-2.2
-- BCL-Blog ambiguous/invalid: https://learn.microsoft.com/en-us/archive/blogs/bclteam/system-timezoneinfo-working-with-ambiguous-and-invalid-points-in-time-josh-free
+- BCL blog ambiguous/invalid: https://learn.microsoft.com/en-us/archive/blogs/bclteam/system-timezoneinfo-working-with-ambiguous-and-invalid-points-in-time-josh-free
 - NodaTime Resolvers 3.3: https://nodatime.org/3.3.x/api/NodaTime.TimeZones.Resolvers.html
 - NodaTime SkippedTimeResolver / AmbiguousTimeResolver: https://nodatime.org/3.2.x/api/NodaTime.TimeZones.SkippedTimeResolver.html, https://nodatime.org/3.2.x/api/NodaTime.TimeZones.AmbiguousTimeResolver.html
 - NodaTime DateTimeZoneProviders / TimeZones: https://nodatime.org/api/NodaTime.DateTimeZoneProviders.html, https://nodatime.org/api/NodaTime.TimeZones.html
 - NuGet NodaTime.Testing: https://www.nuget.org/packages/NodaTime.Testing
 - MSDN Magazine Noda Time: https://learn.microsoft.com/en-us/archive/msdn-magazine/2013/march/the-working-programmer-noda-time
-- TimeProvider Overview: https://learn.microsoft.com/zh-tw/dotnet/standard/datetime/timeprovider-overview
+- TimeProvider overview: https://learn.microsoft.com/zh-tw/dotnet/standard/datetime/timeprovider-overview
 - FakeTimeProvider: https://learn.microsoft.com/en-us/dotNet/api/microsoft.extensions.time.testing.faketimeprovider?view=net-8.0
-- FakeTimeProvider Quellcode: https://source.dot.net/Microsoft.Extensions.TimeProvider.Testing/FakeTimeProvider.cs.html
+- FakeTimeProvider source code: https://source.dot.net/Microsoft.Extensions.TimeProvider.Testing/FakeTimeProvider.cs.html
 - Blog TimeProvider: https://blog.maartenballiauw.be/posts/2026-07-22-timeprovider-and-the-end-of-untestable-datetime-now/
-- Quickstart MCP-Server .NET: https://learn.microsoft.com/dotnet/ai/quickstarts/build-mcp-server
-- Publish to MCP Registry: https://learn.microsoft.com/en-us/dotnet/ai/quickstarts/publish-mcp-registry
-- NuGet MCP Quickstart (Blog 2025): https://devblogs.microsoft.com/dotnet/mcp-server-dotnet-nuget-quickstart/
+- Quickstart MCP server .NET: https://learn.microsoft.com/dotnet/ai/quickstarts/build-mcp-server
+- Publish to MCP registry: https://learn.microsoft.com/en-us/dotnet/ai/quickstarts/publish-mcp-registry
+- NuGet MCP quickstart (blog 2025): https://devblogs.microsoft.com/dotnet/mcp-server-dotnet-nuget-quickstart/
 - dotnet/docs PR 49301: https://github.com/dotnet/docs/pull/49301/files
 - System.CommandLine NuGet: https://www.nuget.org/packages/system.commandline
-- System.CommandLine Doku: https://learn.microsoft.com/en-us/dotnet/standard/commandline/
+- System.CommandLine docs: https://learn.microsoft.com/en-us/dotnet/standard/commandline/
 - Verify: https://docsearch.algolia.com/mcp/docs/repo/verifytests/verify
-- Verify Sponsoring: https://duendesoftware.com/blog/20260409-verify-open-source-sponsorship
-- .NET Container Images: https://learn.microsoft.com/dotnet/core/docker/container-images
-- dotnet-docker Discussion 4821: https://github.com/dotnet/dotnet-docker/discussions/4821
+- Verify sponsorship: https://duendesoftware.com/blog/20260409-verify-open-source-sponsorship
+- .NET container images: https://learn.microsoft.com/dotnet/core/docker/container-images
+- dotnet-docker discussion 4821: https://github.com/dotnet/dotnet-docker/discussions/4821
 - MCPB: https://docsearch.algolia.com/mcp/docs/repo/modelcontextprotocol/mcpb
-- Dev Leader Transports (sekundär): https://www.devleader.ca/2026/07/17/mcp-transports-in-c-stdio-vs-streamable-http-vs-legacy-sse
-- csharp-sdk Quellcode (main, 2.3.0): https://github.com/modelcontextprotocol/csharp-sdk/tree/main/src
+- Dev Leader transports (secondary): https://www.devleader.ca/2026/07/17/mcp-transports-in-c-stdio-vs-streamable-http-vs-legacy-sse
+- csharp-sdk source code (main, 2.3.0): https://github.com/modelcontextprotocol/csharp-sdk/tree/main/src
 - McpServerImpl.cs: https://github.com/modelcontextprotocol/csharp-sdk/blob/main/src/ModelContextProtocol.Core/Server/McpServerImpl.cs
 - McpErrorCode.cs: https://github.com/modelcontextprotocol/csharp-sdk/blob/main/src/ModelContextProtocol.Core/McpErrorCode.cs
 - McpSessionHandler.cs: https://github.com/modelcontextprotocol/csharp-sdk/blob/main/src/ModelContextProtocol.Core/McpSessionHandler.cs
 - McpServerToolAttribute.cs: https://github.com/modelcontextprotocol/csharp-sdk/blob/main/src/ModelContextProtocol.Core/Server/McpServerToolAttribute.cs
 - AIFunctionMcpServerTool.cs: https://github.com/modelcontextprotocol/csharp-sdk/blob/main/src/ModelContextProtocol.Core/Server/AIFunctionMcpServerTool.cs
-- csharp-sdk Samples: https://github.com/modelcontextprotocol/csharp-sdk/tree/main/samples
+- csharp-sdk samples: https://github.com/modelcontextprotocol/csharp-sdk/tree/main/samples
 - FindSystemTimeZoneById (.NET 10): https://learn.microsoft.com/en-us/dotnet/api/system.timezoneinfo.findsystemtimezonebyid?view=net-10.0
 - dotnet/runtime TimeZoneInfo.cs: https://github.com/dotnet/runtime/blob/main/src/libraries/System.Private.CoreLib/src/System/TimeZoneInfo.cs
 - dotnet/runtime TimeZoneInfo.Unix.NonAndroid.cs: https://github.com/dotnet/runtime/blob/main/src/libraries/System.Private.CoreLib/src/System/TimeZoneInfo.Unix.NonAndroid.cs
-- NodaTime Startseite: https://nodatime.org/
-- NodaTime Versionen: https://nodatime.org/versions
+- NodaTime home page: https://nodatime.org/
+- NodaTime versions: https://nodatime.org/versions
 - IANA tzdb 2026e: https://www.iana.org/time-zones/releases/2026e
 - C# 14 What's new: https://learn.microsoft.com/en-us/dotnet/csharp/whats-new/csharp-14
-- .NET 10 Default-Images Ubuntu: https://learn.microsoft.com/dotnet/core/compatibility/containers/10.0/default-images-use-ubuntu
+- .NET 10 default images Ubuntu: https://learn.microsoft.com/dotnet/core/compatibility/containers/10.0/default-images-use-ubuntu
 - MCPB MANIFEST.md: https://github.com/modelcontextprotocol/mcpb/blob/main/MANIFEST.md
-- Test-Plattformen Übersicht: https://learn.microsoft.com/en-us/dotnet/core/testing/test-platforms-overview
+- Test platforms overview: https://learn.microsoft.com/en-us/dotnet/core/testing/test-platforms-overview
 - dotnet test MTP: https://learn.microsoft.com/ar-sa/dotnet/core/tools/dotnet-test-mtp
-- dotnet test mit MTP (Blog): https://devblogs.microsoft.com/dotnet/dotnet-test-with-mtp/
+- dotnet test with MTP (blog): https://devblogs.microsoft.com/dotnet/dotnet-test-with-mtp/

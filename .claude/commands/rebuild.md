@@ -1,5 +1,5 @@
 ---
-description: Rebuild Slice für Slice – nächste Slice, bestimmte Slice oder Status
+description: Rebuild slice by slice – next slice, a given slice, or status
 argument-hint: "[status | NN] [direct]"
 ---
 You drive the rebuild described in this repo. Arguments: "$ARGUMENTS".
