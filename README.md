@@ -1,81 +1,66 @@
-# Rebuild-Plan – mcp-time → .NET 10
+# mcp-time-net – MCP-Server „time“ auf .NET 10
 
-Erzeugt mit dem Skill `vibe-rebuild` 2.2.0 am 23.10.2026.
-Vorlage: MCP-Referenzserver „time“ (`modelcontextprotocol/servers`, `src/time` @ `51b6382`, Python, MIT). Ziel: derselbe Nutzen, in .NET 10 besser gebaut – keine Kopie.
+Kleiner lokaler MCP-Server (stdio) mit zwei rein lesenden Tools: `get_current_time` (aktuelle Zeit in einer IANA-Zeitzone) und `convert_time` (Ortszeit zwischen zwei Zeitzonen umrechnen, optional an einem bestimmten Datum).
 
-## Einschätzung: Neubau oder Refactoring?
+## Herkunft
 
-Das Original ist klein (310 Zeilen), sauber und sehr gut getestet. Ein Refactoring im selben Stack lohnt kaum. Der Neubau in .NET 10 lohnt sich, wenn der Server ins .NET-Ökosystem soll, etwa als `dotnet tool` über `dnx` neben anderen .NET-MCP-Servern. Er bringt außerdem zwei echte Verbesserungen: ein optionales Datum bei der Umrechnung und plattformunabhängig gleiche Zeitzonen-Daten durch NodaTime.
+Dieses Repo ist ein Neubau des MCP-Referenzservers **„time“** auf .NET 10:
 
-Die Fachlogik ist durch 44 Vergleichsfälle mit exakten Werten abgesichert, darunter Sommerzeit, Viertelstunden-Offsets, Datumsgrenze sowie nicht existierende und doppeldeutige Ortszeiten. Das Risiko ist gering.
+- **Original:** [`modelcontextprotocol/servers` → `src/time`](https://github.com/modelcontextprotocol/servers/tree/51b6382/src/time), Stand Commit `51b6382`, Python, MIT-Lizenz.
+- **Kein Port, keine Kopie:** Aus dem Original wurden nur Verhalten, Schnittstellen und erwartete Werte übernommen (`rebuild/parity/`), kein Code. Der Rebuild selbst hat das Original nie gebaut, gestartet oder gelesen – alles, was er treffen muss, steht in `rebuild/`.
 
-## Dateien
+## Testfall für den Skill `vibe-rebuild`
 
-| Datei | Inhalt |
-|---|---|
-| `CLAUDE.md` | Leitplanken (Wurzelordner, lädt Claude Code automatisch) |
-| `.claude/commands/rebuild.md` | der Befehl `/rebuild`, der den Rebuild Slice für Slice durchführt |
-| `rebuild/analysis.md` | Stack, Domain, Features, Schnittstellen, Tests, Legacy-Befunde |
-| `rebuild/research.md` | Zielstack-Recherche: drei Durchgänge, Entscheidungen D1–D20 mit Quellen |
-| `rebuild/open-questions.md` | offene Fragen mit markierten Annahmen |
-| `rebuild/PRD.md`, `rebuild/GLOSSARY.md` | Verhalten mit Given/When/Then, Verbesserungen mit Absicht, Begriffe |
-| `rebuild/slices/00–04` | je Slice Ziel, Umfang, startfertiger Prompt, Definition of Done |
-| `rebuild/parity/` | Vergleichsfälle mit exakten Erwartungswerten, Abweichungsprotokoll |
-| `rebuild/plans/` | Detailpläne je Slice (entstehen bei `/rebuild`) |
-| `rebuild/checklist.md` | Fortschritt je Slice |
-| `rebuild/slice-graph*.mmd/.png/.svg` | Abhängigkeitsgraph (Dokument und Seitenleiste) |
-| `rebuild/_raw/`, `_inventory.md`, `_slices.json` | Arbeitsmaterial |
+Dieses Repo ist ein **direkter End-to-End-Test des Skills [`vibe-rebuild`](https://github.com/vompa/vibe-rebuild)** (Version 2.2.0) und dort als Referenz verlinkt: Der Skill hat aus dem Original den Plan in `rebuild/` erzeugt, und der Rebuild wurde danach ausschließlich mit dem vom Skill erzeugten Befehl `/rebuild` Slice für Slice umgesetzt. Die Git-Historie zeigt beide Phasen unverändert:
 
-## Slice-Abhängigkeiten
-
-```mermaid
-%%{init: {"theme":"base","fontFamily":"Inter, Segoe UI, Helvetica Neue, Arial, sans-serif","flowchart":{"curve":"basis","nodeSpacing":24,"rankSpacing":34,"padding":10},"themeVariables":{"fontFamily":"Inter, Segoe UI, Helvetica Neue, Arial, sans-serif","fontSize":"14px","lineColor":"#8A94A6"}}}%%
-flowchart TB
-  classDef base fill:#E8EEF9,stroke:#3B5B9A,color:#1B2B4A,stroke-width:1.5px
-  classDef files fill:#E7F4EC,stroke:#2F7A4D,color:#173D27,stroke-width:1.5px
-  classDef proc fill:#FCEFE3,stroke:#B4651E,color:#4F2B0B,stroke-width:1.5px
-  classDef finish fill:#FBE8EA,stroke:#A8394A,color:#4A1720,stroke-width:1.5px
-
-  S00["00 · Scaffold"]:::base --> S01["01 · Server-Kern<br/>& Protokoll"]:::base --> S02["02 · Zeitzonen &<br/>aktuelle Zeit"]:::files
-  subgraph Q["parallel nach 02"]
-    direction LR
-    S03["03 · Umrechnung"]:::files
-    S04["04 · Start &<br/>Verteilung"]:::finish
-  end
-  S02 --> S03
-  S02 --> S04
-  style Q fill:#FAFBFC,stroke:#D5DAE3
-```
-
-![Slice-Abhängigkeiten](rebuild/slice-graph.png)
-
-Nach Slice 02 können 03 (Umrechnung) und 04 (Start und Verteilung) parallel laufen.
-
-## So geht es weiter
-
-Der ganze Rebuild läuft über einen einzigen Befehl in Claude Code: **`/rebuild`**. Er sucht die nächste Slice aus, legt dir einen Plan vor, baut nach deiner Freigabe Tests und Code und hakt die Slice am Ende ab.
-
-### Voraussetzungen (einmalig)
-
-| Was | Wozu | Prüfen mit |
+| Commit | Zeit (MESZ) | Phase |
 |---|---|---|
-| Claude Code | führt `/rebuild` aus | `claude --version` |
-| .NET 10 SDK | baut und testet den Rebuild | `dotnet --version` (10.x) |
-| optional: Node.js | nur für den MCP Inspector zum Ausprobieren (`npx @modelcontextprotocol/inspector`) | `node --version` |
-| optional: Plugin superpowers | feinere Pläne, ein Subagent pro Aufgabe, Reviews dazwischen | in Claude Code `/plugin` aufrufen und superpowers installieren; `/rebuild` erkennt es selbst |
+| `7d16fae` | 23.10.2026 22:34 | Plan aus `vibe-rebuild` 2.2.0 (28 Dateien, kein Code) |
+| `7ea8f04` | 23.10.2026 23:37 | Slice 00 Scaffold |
+| `52f705a` | 24.10.2026 00:58 | Slice 01 Server-Kern & Protokoll |
+| `2e85739` | 24.10.2026 04:54 | Slice 02 Zeitzonen & aktuelle Zeit |
+| `c4c26ff` | 24.10.2026 05:28 | Slice 03 Umrechnung |
+| `9ca6e26` | 24.10.2026 06:13 | Slice 04 Start, lokale Zeitzone & Verteilung |
+| `e996202` | 24.10.2026 06:18 | Nachtrag: Architekturtest „Server ohne NodaTime“ |
 
-Das Original brauchst du nicht. Alles, was der Rebuild treffen muss, steht in `rebuild/`. Fehlt etwas, sagt dir `/rebuild` vor Slice 00 genau, was und wie du es behebst.
+Ergebnis: alle Vergleichsfälle aus `rebuild/parity/` grün, 202 Tests (70 Testmethoden, davon 35 Theories) in drei Testprojekten grün (24.10.2026), 853 Zeilen Produktivcode, 17 dokumentierte Abweichungen in [`rebuild/parity/deviations.md`](rebuild/parity/deviations.md) – alle bewusst (Verbesserung oder Entscheidung), keine als Fehler im Rebuild.
 
-### Ablauf je Slice
+## Ablauf mit dem Skill
 
-1. **Claude Code im Repo-Ordner starten**: Terminal im Repo-Ordner öffnen und `claude` eingeben.
-2. **`/rebuild` eintippen.** Claude nennt die Slice, die als Nächstes dran ist, und warum.
-3. **Plan prüfen.** Claude legt den Plan unter `rebuild/plans/` ab und zeigt ihn dir: Dateien, Klassen, Tests. Passt er, antworte zum Beispiel „passt, los“. Sonst sag, was anders sein soll.
-4. **Claude baut die Slice**: zuerst Tests, die fehlschlagen, dann den Code, bis alles grün ist, inklusive der Vergleichsfälle aus `rebuild/parity/`. Zwischendurch kommen kurze Statuszeilen.
-5. **Abschluss.** Claude hakt die Slice in `rebuild/checklist.md` ab und endet mit drei Zeilen: was fertig ist, welche Slices jetzt startbereit sind, und „neue Session starten, `/rebuild`“.
-6. **Neue Session** (neues Terminal oder `/clear`) und wieder `/rebuild`. Jede Slice bekommt eine frische Session, damit der Kontext sauber bleibt.
+### Phase 1 – Plan erzeugen (Skill `vibe-rebuild`)
 
-### Befehle
+Eine eigene Sitzung mit dem Skill, Eingabe: Original-Repo (nur lesend), Zielstack .NET 10, ganzer Umfang. Der Skill arbeitet in diesen Schritten; die Ergebnisse liegen in `rebuild/`:
+
+| Schritt | Was der Skill tut | Ergebnis |
+|---|---|---|
+| 1. Eingaben | fragt Repo, Zielstack (mit konkreten Optionen), Umfang und ob das Original lokal läuft – in einer Runde | Annahmen mit `[Annahme]` markiert |
+| 2. Inventar | `scripts/inventory.py` zählt Projekte, Dateien, Zeilen, Tests, vorhandene Doku | `_inventory.md` |
+| 3. Analyse | Explorer-Subagenten je Bereich, Berichte als Arbeitsmaterial, Stichprobe harter Zahlen per `grep` | `analysis.md`, `_raw/` |
+| 4. Offene Fragen | gruppiert nach architekturrelevant / fachlich / gestrichen, je mit Annahme | `open-questions.md` |
+| 5. Recherche Zielstack | drei Durchgänge: BROAD (12 Themen), DEEP (Quellcode des MCP-C#-SDK, NodaTime, Packaging, Tests), DISTILL (Entscheidungen mit Quellen) | `research.md` mit D1–D20, `_raw/research-progress.md` |
+| 6. PRD & Glossar | Verhalten mit Given/When/Then, bewusste Verbesserungen (optionales `date`), Begriffe | `PRD.md`, `GLOSSARY.md` |
+| 7. Leitplanken | Zielarchitektur mit erzwungenen Abhängigkeitsrichtungen, harte Regeln, Befehle | `CLAUDE.md` |
+| 8. Slicing | vertikale Slices nach Abhängigkeit, je mit Prompt und Definition of Done; Graph gerendert | `slices/00–04`, `_slices.json`, `slice-graph*` |
+| 9. Parity | Vergleichsfälle aus den Tests des Originals, getrennt nach Business- und Schnittstellenvertrag, mit exakten Werten | `parity/business-cases.md`, `parity/interface-cases.md`, `parity/README.md` |
+| 10. Übergabe | Einschätzung Neubau vs. Refactoring, Checkliste, Befehl `/rebuild` | Plan-README (heute diese Datei), `checklist.md`, `.claude/commands/rebuild.md` |
+
+Die architekturrelevanten Fragen (Zeitzonen-Bibliothek, Verteilung) wurden vor dem Slicing entschieden: NodaTime (D3) und `dotnet tool` über `dnx` (D17).
+
+Einschätzung des Skills damals: Das Original ist klein (310 Zeilen), sauber und gut getestet; ein Refactoring im selben Stack lohnt kaum. Der Neubau lohnt sich für das .NET-Ökosystem (`dotnet tool` über `dnx`) und bringt zwei Verbesserungen: optionales Datum bei der Umrechnung und plattformunabhängig gleiche Zeitzonendaten durch NodaTime.
+
+### Phase 2 – Rebuild umsetzen (`/rebuild`, je Slice eine frische Sitzung)
+
+Claude Code im Repo-Ordner starten und **`/rebuild`** eintippen. Der Befehl wählt die niedrigste offene Slice, deren Abhängigkeiten abgehakt sind, und arbeitet sie so ab (mit installiertem Plugin superpowers):
+
+1. **Lesen:** Slice-Datei, `CLAUDE.md`, die genannten PRD-Abschnitte, Entscheidungen in `research.md`, Vergleichsfälle und Glossar.
+2. **Worktree:** `superpowers:using-git-worktrees` legt `.claude/worktrees/slice-NN` mit Branch `slice-NN` an.
+3. **Plan:** `superpowers:writing-plans` schreibt `rebuild/plans/<Datum>-slice-NN.md` mit Tasks, Annahmen („bei Freigabe bestätigen“) und Review-Fokus. **Hier stoppt Claude** und wartet auf die Freigabe.
+4. **Umsetzen:** `superpowers:subagent-driven-development` – ein Subagent je Task, Tests zuerst (rot), dann minimal grün; nach jedem Task ein Review-Subagent, am Ende ein Gesamtreview. Jeder Task committet auf `slice-NN` (für Review-Pakete und Wiederanlauf).
+5. **Abschluss:** volle Testsuite, Definition of Done, Abweichungen in `rebuild/parity/deviations.md`, Haken in `rebuild/checklist.md`, Abweichungen vom Plan oben in der Plan-Datei.
+6. **Integration:** `superpowers:finishing-a-development-branch` – nach Rückfrage `git merge --squash` als **ein Commit pro Slice** auf `main`, danach Worktree und Branch weg.
+7. Claude endet mit drei Zeilen („Slice NN done“, „Ready next: …“, „Next step: start a fresh session and type /rebuild“). Für die nächste Slice eine neue Sitzung.
+
+Ohne superpowers (oder mit `/rebuild NN direct`) läuft dasselbe ohne Worktree und Subagenten: Branch `slice-NN`, Plan vorlegen, rote Tests, Code, ein Commit.
 
 | Eingabe | Was passiert |
 |---|---|
@@ -84,32 +69,22 @@ Das Original brauchst du nicht. Alles, was der Rebuild treffen muss, steht in `r
 | `/rebuild status` | Übersicht: erledigt, in Arbeit, startbereit, blockiert |
 | `/rebuild 03 direct` | ohne superpowers, auch wenn es installiert ist |
 
-### Parallel arbeiten
+Nach Slice 02 waren 03 und 04 unabhängig und hätten parallel in zwei Sitzungen laufen können (`/rebuild 03`, `/rebuild 04`); in diesem Test liefen sie nacheinander.
 
-Nach Slice 02 sind 03 (Umrechnung) und 04 (Start und Verteilung) unabhängig voneinander. Öffne zwei Terminals und tippe `/rebuild 03` bzw. `/rebuild 04`. Jede Slice arbeitet auf ihrem eigenen Branch.
+### Was der Mensch in diesem Test entschieden hat
 
-### Wenn etwas hakt
+Freigaben und Entscheidungen, die nicht im Plan standen, sind in den Plan-Dateien und in `deviations.md` festgehalten, unter anderem:
 
-- **Tests bleiben rot**: Die Slice wird nicht abgehakt. Starte eine neue Session mit `/rebuild NN`. Claude setzt beim vorhandenen Branch und Plan wieder an.
-- **Ein Vergleichsfall schlägt fehl**: Claude trägt das in `rebuild/parity/deviations.md` ein, entweder als Fehler im Rebuild oder als bewusste Verbesserung mit Begründung.
-- **Eine fachliche Frage ist offen**: Sie steht in `rebuild/open-questions.md`. Antworte Claude direkt, die Entscheidung landet in Plan und Spezifikation.
-- **Du willst den Stand sehen**: `/rebuild status`.
+- **Kein Verify** für Snapshots (ab v33 Sponsoring-Erklärung im Build nötig) → eigener JSON-Vergleich, D14 angepasst (Slice 00).
+- **Negative Sommerzeit** (Europe/Dublin) folgt der tzdb: Winter `is_dst: true` (Slice 02).
+- **Bereich für `date`** `0001-01-02` bis `9999-12-29`, damit keine Überläufe entstehen (Slice 03, aus einem Task-Review).
+- **Framework-abhängiges `dotnet tool`** statt self-contained, CLI-Meldungen lokalisiert, `--version` neu (Slice 04).
 
-### Wo steht was
-
-| Ordner/Datei | Inhalt |
-|---|---|
-| `CLAUDE.md` | Regeln für Claude: Architektur, harte Regeln, Befehle (wird automatisch geladen) |
-| `.claude/commands/rebuild.md` | der Befehl `/rebuild` |
-| `rebuild/slices/` | eine Datei je Slice: Ziel, Umfang, Definition of Done |
-| `rebuild/plans/` | die Detailpläne, die bei jedem `/rebuild` entstehen |
-| `rebuild/checklist.md` | Fortschritt |
-| `rebuild/PRD.md`, `rebuild/GLOSSARY.md` | gewünschtes Verhalten, Verbesserungen, Begriffe |
-| `rebuild/research.md` | technische Entscheidungen mit Quellen |
-| `rebuild/parity/` | erwartetes Verhalten aus dem Original (Fälle mit exakten Werten), Abweichungsprotokoll |
-| `src/`, `tests/` | der neue Code (entsteht ab Slice 00) |
+Lücken, die der Rebuild selbst schließen musste, stehen als Befunde in `rebuild/research.md` (Abschnitte je Slice) und als „Abweichungen vom Plan“ oben in den Plan-Dateien.
 
 ## Bauen und testen
+
+Voraussetzungen: .NET 10 SDK (`dotnet --version` 10.x); optional Node.js für den MCP Inspector.
 
 ```bash
 dotnet build -warnaserror
@@ -121,8 +96,30 @@ npx @modelcontextprotocol/inspector --cli dotnet run --project src/McpTime.Host 
 dotnet format --verify-no-changes
 ```
 
-## Annahmen, die du prüfen solltest
+## Wo steht was
 
-- `convert_time` bekommt ein optionales `date`. Ohne `date` bleibt das Verhalten wie beim Original.
-- Fehlertexte werden neu formuliert, die Information bleibt gleich.
+| Ordner/Datei | Inhalt |
+|---|---|
+| `src/`, `tests/` | Server (Host, Server, Core) und Tests (Core, Protokoll, Architektur) |
+| `CLAUDE.md` | Regeln für Claude: Architektur, harte Regeln, Befehle (wird automatisch geladen) |
+| `.claude/commands/rebuild.md` | der Befehl `/rebuild` |
+| `rebuild/analysis.md` | Stack, Domain, Features, Schnittstellen, Tests, Legacy-Befunde des Originals |
+| `rebuild/research.md` | Zielstack-Recherche, Entscheidungen D1–D20 mit Quellen, Befunde je Slice |
+| `rebuild/open-questions.md` | offene Fragen mit Annahmen und Entscheidungen |
+| `rebuild/PRD.md`, `rebuild/GLOSSARY.md` | gewünschtes Verhalten, Verbesserungen, Begriffe |
+| `rebuild/slices/` | eine Datei je Slice: Ziel, Umfang, Prompt, Definition of Done |
+| `rebuild/plans/` | die Detailpläne aus `/rebuild`, mit Abweichungen vom Plan |
+| `rebuild/parity/` | Vergleichsfälle mit exakten Werten, Abweichungsprotokoll |
+| `rebuild/checklist.md` | Fortschritt je Slice |
+| `rebuild/slice-graph*` | Abhängigkeitsgraph der Slices |
+| `rebuild/_raw/`, `_inventory.md`, `_slices.json` | Arbeitsmaterial des Skills |
+
+## Slice-Abhängigkeiten
+
+![Slice-Abhängigkeiten](rebuild/slice-graph.png)
+
+## Annahmen gegenüber dem Original
+
+- `convert_time` hat ein optionales `date`. Ohne `date` bleibt das Verhalten wie beim Original („heute“ in der Quellzone).
+- Fehlertexte sind neu formuliert, die Information bleibt gleich (Feld, Wert, erwartetes Format).
 - Wochentage bleiben englisch, die Zeitdifferenz bleibt ein String (`+5.75h`).
