@@ -107,6 +107,14 @@ git push origin v0.1.0
 
 Danach im Client: `{ "command": "dotnet", "args": ["dnx", "Vompa.McpTime", "--yes"] }` (unter Windows `dotnet` mit `dnx` als Argument, weil es nur `dnx.cmd` gibt).
 
+Testaufruf gegen das veröffentlichte Paket (braucht Node.js; holt `Vompa.McpTime` von nuget.org und ruft `get_current_time` auf):
+
+```bash
+npx -y @modelcontextprotocol/inspector --cli dotnet dnx Vompa.McpTime --yes --method tools/call --tool-name get_current_time --tool-arg timezone=Europe/Vienna
+```
+
+Erwartet: `isError: false` und unter `structuredContent` die aktuelle Zeit in Wien mit `timezone`, `datetime`, `day_of_week` und `is_dst`. Eingetippter Text in der Konsole ist kein Test: Der Server erwartet JSON-RPC von einem Client und meldet sonst einen Parse-Fehler auf stderr.
+
 ## Wo steht was
 
 | Ordner/Datei | Inhalt |
