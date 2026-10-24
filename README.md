@@ -15,13 +15,13 @@ Dieses Repo ist ein **direkter End-to-End-Test des Skills [`vibe-rebuild`](https
 
 | Commit | Zeit (MESZ) | Phase |
 |---|---|---|
-| `7d16fae` | 23.10.2026 22:34 | Plan aus `vibe-rebuild` 2.2.0 (28 Dateien, kein Code) |
-| `7ea8f04` | 23.10.2026 23:37 | Slice 00 Scaffold |
-| `52f705a` | 24.10.2026 00:58 | Slice 01 Server-Kern & Protokoll |
-| `2e85739` | 24.10.2026 04:54 | Slice 02 Zeitzonen & aktuelle Zeit |
-| `c4c26ff` | 24.10.2026 05:28 | Slice 03 Umrechnung |
-| `9ca6e26` | 24.10.2026 06:13 | Slice 04 Start, lokale Zeitzone & Verteilung |
-| `e996202` | 24.10.2026 06:18 | Nachtrag: Architekturtest „Server ohne NodaTime“ |
+| `591296e` | 23.10.2026 22:34 | Plan aus `vibe-rebuild` 2.2.0 (28 Dateien, kein Code) |
+| `9979965` | 23.10.2026 23:37 | Slice 00 Scaffold |
+| `4a23de6` | 24.10.2026 00:58 | Slice 01 Server-Kern & Protokoll |
+| `92cde94` | 24.10.2026 04:54 | Slice 02 Zeitzonen & aktuelle Zeit |
+| `9918428` | 24.10.2026 05:28 | Slice 03 Umrechnung |
+| `32bc117` | 24.10.2026 06:13 | Slice 04 Start, lokale Zeitzone & Verteilung |
+| `dfa7b1c` | 24.10.2026 06:18 | Nachtrag: Architekturtest „Server ohne NodaTime“ |
 
 Ergebnis: alle Vergleichsfälle aus `rebuild/parity/` grün, 202 Tests (70 Testmethoden, davon 35 Theories) in drei Testprojekten grün (24.10.2026), 853 Zeilen Produktivcode, 17 dokumentierte Abweichungen in [`rebuild/parity/deviations.md`](rebuild/parity/deviations.md) – alle bewusst (Verbesserung oder Entscheidung), keine als Fehler im Rebuild.
 
