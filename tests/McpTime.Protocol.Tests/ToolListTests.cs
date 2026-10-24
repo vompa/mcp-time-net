@@ -1,4 +1,5 @@
 using System.Text.Json;
+using McpTime.Host;
 using McpTime.Protocol.Tests.Harness;
 using ModelContextProtocol;
 using ModelContextProtocol.Client;
@@ -86,9 +87,40 @@ public sealed class ToolListTests
         JsonSnapshot.Match("ToolsList", tools.Select(t => t.ProtocolTool).ToList());
     }
 
-    private static async Task<IList<McpClientTool>> ListToolsAsync(string protocolVersion)
+    [Fact]
+    public async Task DescriptionsNameTheOverriddenLocalTimeZoneAsync()
     {
-        await using var server = await ServerUnderTest.StartAsync(protocolVersion, TestContext.Current.CancellationToken);
+        var tools = await ListToolsAsync(
+            ProtocolGenerations.Sessionless,
+            ["--local-timezone", "Europe/Vienna"]);
+
+        Assert.Contains("'Europe/Vienna'", PropertyDescription(tools, "get_current_time", "timezone"));
+        Assert.Contains("'Europe/Vienna'", PropertyDescription(tools, "convert_time", "source_timezone"));
+        Assert.Contains("'Europe/Vienna'", PropertyDescription(tools, "convert_time", "target_timezone"));
+    }
+
+    [Fact]
+    public async Task DescriptionsNameTheDetectedZoneWithoutOptionAsync()
+    {
+        var detected = LocalTimeZone.DetectFromSystem().Value;
+
+        var tools = await ListToolsAsync(ProtocolGenerations.Sessionless, []);
+
+        Assert.Contains($"'{detected}'", PropertyDescription(tools, "get_current_time", "timezone"));
+    }
+
+    private static string? PropertyDescription(IList<McpClientTool> tools, string tool, string property)
+        => tools.Single(t => t.Name == tool).ProtocolTool.InputSchema
+            .GetProperty("properties").GetProperty(property).GetProperty("description").GetString();
+
+    private static async Task<IList<McpClientTool>> ListToolsAsync(
+        string protocolVersion,
+        IReadOnlyList<string>? hostArguments = null)
+    {
+        await using var server = await ServerUnderTest.StartAsync(
+            protocolVersion,
+            TestContext.Current.CancellationToken,
+            hostArguments);
         return await server.Client.ListToolsAsync(cancellationToken: server.Token);
     }
 

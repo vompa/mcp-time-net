@@ -32,7 +32,11 @@ internal sealed class ServerUnderTest : IAsyncDisposable
         }
     }
 
-    public static async Task<ServerUnderTest> StartAsync(string protocolVersion, CancellationToken ct)
+    /// <param name="hostArguments">Command line for the host; the default pins the local zone so output never depends on the machine.</param>
+    public static async Task<ServerUnderTest> StartAsync(
+        string protocolVersion,
+        CancellationToken ct,
+        IReadOnlyList<string>? hostArguments = null)
     {
         var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
         timeout.CancelAfter(s_requestTimeout);
@@ -42,7 +46,7 @@ internal sealed class ServerUnderTest : IAsyncDisposable
         {
             Name = "mcp-time",
             Command = Environment.GetEnvironmentVariable("DOTNET_HOST_PATH") ?? "dotnet",
-            Arguments = [hostDllPath],
+            Arguments = [hostDllPath, .. hostArguments ?? ["--local-timezone", "UTC"]],
             StandardErrorLines = line =>
             {
                 lock (standardError)

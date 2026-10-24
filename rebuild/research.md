@@ -214,8 +214,8 @@ Quelle: Quellcode `modelcontextprotocol/csharp-sdk`, `main` @ 8b00f20 (23.10.202
 - ~~NodaTime: Case-Sensitivity von `Tzdb.GetZoneOrNull` und ob `Tzdb.Ids` Aliase enthält; API der `TimeProvider`-Extensions.~~ Geklärt, siehe Slice-02-Befunde.
 - Empirischer Test der `TimeZoneInfo`-Randfälle (Lord Howe, Kathmandu, `europe/warsaw`, `US/Eastern`) auf Linux/Windows – keine .NET-Installation in der Recherche-Umgebung.
 - `global.json`-Schlüssel für MTP gegen global.json-Referenz verifizieren (geklärt, siehe Scaffold-Befunde / D14); xUnit-v3- vs. MSTest- vs. TUnit-Versionen; Verify-Lizenz/Sponsoring-Status (geklärt, siehe Scaffold-Befunde / D14).
-- Template-Output `dotnet new mcpserver` (ToolCommandName, server.json-Packing, AOT-Option); .NET-10-chiseled-Tag-Namen (`10.0-noble-chiseled-extra`) auf MCR verifizieren.
-- CLI-Parsing (`System.CommandLine` vs. Host-Konfiguration) und Wechselwirkung mit `Host.CreateApplicationBuilder(args)`.
+- ~~Template-Output `dotnet new mcpserver` (ToolCommandName, server.json-Packing).~~ Geklärt, siehe Slice-04-Befunde. Offen: AOT-Option; .NET-10-chiseled-Tag-Namen (`10.0-noble-chiseled-extra`) auf MCR verifizieren.
+- ~~CLI-Parsing (`System.CommandLine` vs. Host-Konfiguration) und Wechselwirkung mit `Host.CreateApplicationBuilder(args)`.~~ Geklärt, siehe Slice-04-Befunde.
 - Kulturunabhängige Formatierung (Wochentag englisch, ISO 8601) – BCL-Standardwissen, nicht vertieft.
 
 ## Scaffold-Befunde (Slice 00)
@@ -260,6 +260,22 @@ Quelle: Quellcode `modelcontextprotocol/csharp-sdk`, `main` @ 8b00f20 (23.10.202
 - Historische Ortszeit: Europe/Vienna 1850-01-01 12:00 hat Offset `+01:05:21` (3921 s), Asia/Kolkata 1900-01-01 12:00 `+05:21:10`. Das Muster `o<+HH:mm>` kürzt auf `+01:05`; `o<+HH:mm:ss>` gibt `+01:05:21` aus → Sekunden nur, wenn der Offset welche hat.
 - .NET-`\d` trifft auch arabisch-indische Ziffern (`١٢`) → `[0-9]`; `$` trifft vor einem abschließenden `\n` → `\z`.
 - Rundung der Zeitdifferenz: −18 s ergibt −0,005 h und mit `AwayFromZero` −0,01 h (nicht `+0.0h`); der Test für „nie `-0.0h`“ nutzt deshalb −17 s.
+
+## Slice-04-Befunde (System.CommandLine 2.0.13, Vorlage mcpserver, Probe)
+
+- System.CommandLine 2.0.13 (`new RootCommand(desc) { option }`, `root.SetAction(...)`, `root.Parse(args).Invoke()`): Parse-Fehler geben eine lokalisierte Meldung auf stderr und die Hilfe auf stdout aus, Exit 1; `--help` Exit 0; `--version` gibt die Assembly-Version aus.
+- `--local-timezone ""` ergibt den leeren Zeichenwert; `--local-timezone=` ist ein Parse-Fehler „fehlendes Argument“; eine wiederholte Option ist ein Parse-Fehler.
+- Der Host bekommt die Kommandozeile nicht: sie gehört System.CommandLine. Seit der Gesamtreview baut er per `Host.CreateEmptyApplicationBuilder(new HostApplicationBuilderSettings { DisableDefaults = true })` nur aus Umgebungsvariablen (z. B. `Logging__LogLevel__Default`), siehe unten.
+- `TimeZoneInfo.TryConvertWindowsIdToIanaId` bildet `W. Europe Standard Time` mit Region `AT` auf `Europe/Vienna` ab, mit Region `001` oder `""` auf `Europe/Berlin`. Unter `DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1` (Region dann `IV`) liefert es `false` ohne Exception → die Erkennung fällt auf UTC zurück.
+- Vorlage `dotnet new mcpserver` (2026, MCP SDK 2.1.0 in der Vorlage) erzeugt eine csproj mit `PackAsTool`, `PackageType McpServer`, `RuntimeIdentifiers` `win-x64;win-arm64;osx-arm64;linux-x64;linux-arm64;linux-musl-x64`, `SelfContained`, `PublishSingleFile`, `PackageReadmeFile` und packt `.mcp/server.json` nach `/.mcp/` (kein `ToolCommandName`).
+- `server.json`: Schema `https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json`, `packages[].registryType` `nuget`, `transport.type` `stdio`, dazu `packageArguments` und `environmentVariables`.
+- Paketierung (Task 3, SDK 10.0.402): `dotnet pack src/McpTime.Host -c Release -o artifacts/package` erzeugt `Vompa.McpTime.0.1.0.nupkg` (framework-abhängig, 1,88 MB). Inhalt: `.mcp/server.json`, `README.md`, `tools/net10.0/any/` mit `McpTime.Host.dll`, `McpTime.Host.runtimeconfig.json` (RollForward Major), `DotnetToolSettings.xml` und allen Abhängigkeiten inkl. System.CommandLine-Sprachordner; keine `runtimes/` außer dem Windows-EventLog des Hosting-Pakets.
+- dnx-Aufruf für einen lokalen Ordner: `dotnet dnx Vompa.McpTime --source artifacts/package --yes -- --help` (Exit 0, Hilfe des Tools). `--source` ersetzt alle Feeds. `dnx` allein ist in Git Bash nicht im PATH → `dotnet dnx`.
+- Argumente: Tool-Optionen, die dnx nicht kennt, gehen auch ohne `--` durch (`dnx Vompa.McpTime --source … --yes --local-timezone Not/AZone` → Fehlerzeile, Exit 1; die Reihenfolge ist egal). `--help` ohne `--` wird dagegen von dnx selbst verbraucht und zeigt dessen Hilfe → für `--help` (und `--version`) immer `--` setzen, im Smoke-Test und in der Client-Konfiguration einheitlich mit `--`.
+- Cache: dnx entpackt nach `~/.nuget/packages/vompa.mcptime/0.1.0`. Ein neu gepacktes Paket mit **gleicher Version** wird nicht erneut entpackt (Probe: andere `InformationalVersion`, `--version` zeigte weiter den alten Stand) → lokal die Version erhöhen oder den Ordner `vompa.mcptime/0.1.0` im Cache entfernen; auf frischen CI-Runnern kein Problem.
+- `server.json` gegen das Schema `2025-10-17` geprüft (Python `jsonschema` nicht installiert → eigenes Stdlib-Skript, das `$ref`, `allOf`, `anyOf`, `type`, `required`, `minLength`, `maxLength`, `pattern`, `enum`, `const` und `not` auswertet, 25 Prüfungen für `name`, `description`, `version`, `repository`, `packages[]`, `transport`, `packageArguments[]`; kein vollständiger Validator, Formate wie `uri` bleiben ungeprüft). Fund: `description` hatte 108 Zeichen bei `maxLength: 100` → auf 90 gekürzt; danach keine Verstöße.
+- Gesamtreview: `Host.CreateApplicationBuilder()` lädt `appsettings*.json` samt Datei-Watcher aus dem Arbeitsverzeichnis, in dem der MCP-Client das Tool startet (kaputte Datei = Absturz vor dem Transport) → `HostApplicationBuilderSettings { DisableDefaults = true }`, nur Umgebungsvariablen als Konfiguration, Logging aus Abschnitt `Logging` (`Logging__LogLevel__Default` geht weiter); die Konsolen-Lebensdauer (Ende bei stdin-EOF, Exit 0) bleibt erhalten, nichts nachzurüsten. Response-Dateien (`@datei`) von System.CommandLine sind per `ParserConfiguration.ResponseFileTokenReplacer = null` aus. Unter Windows existiert `dnx` nur als `dnx.cmd`; Clients ohne Shell (Claude Desktop, Node spawn) starten es nicht → Client-Konfiguration mit `"command": "dotnet"` und `"args": ["dnx", ...]`.
+
 
 ## Quellen
 

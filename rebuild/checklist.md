@@ -6,4 +6,4 @@
 | 01 Server-Kern & Protokoll | ☑ | ☑ | ☑ | ☑ | ☑ |
 | 02 Zeitzonen & aktuelle Zeit | ☑ | ☑ | ☑ | ☑ | ☑ |
 | 03 Umrechnung | ☑ | ☑ | ☑ | ☑ | ☑ |
-| 04 Start, lokale Zeitzone & Verteilung | ☐ | ☐ | ☐ | ☐ | ☐ |
+| 04 Start, lokale Zeitzone & Verteilung | ☑ | ☑ | ☑ | ☑ | ☑ |

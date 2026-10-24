@@ -1,0 +1,29 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+  "name": "io.github.vompa/mcp-time-net",
+  "description": "Read-only time tools: current time in an IANA time zone and conversion between time zones.",
+  "version": "0.1.0",
+  "repository": {
+    "url": "https://github.com/vompa/mcp-time-net",
+    "source": "github"
+  },
+  "packages": [
+    {
+      "registryType": "nuget",
+      "identifier": "Vompa.McpTime",
+      "version": "0.1.0",
+      "transport": {
+        "type": "stdio"
+      },
+      "packageArguments": [
+        {
+          "type": "named",
+          "name": "--local-timezone",
+          "description": "IANA timezone name used as the local timezone (default: system timezone, else UTC).",
+          "isRequired": false,
+          "format": "string"
+        }
+      ]
+    }
+  ]
+}

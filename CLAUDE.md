@@ -45,7 +45,8 @@ tests/
 dotnet build -warnaserror
 dotnet test                                  # alle Tests (Core, Protokoll, Architektur)
 dotnet run --project src/McpTime.Host -- --local-timezone Europe/Vienna
-dotnet pack src/McpTime.Host -c Release      # dotnet tool (D17)
+dotnet pack src/McpTime.Host -c Release -o artifacts/package      # dotnet tool (D17)
+dotnet dnx Vompa.McpTime --source artifacts/package --yes -- --help   # aus dem Paket starten (`--` nötig für --help)
 npx @modelcontextprotocol/inspector --cli dotnet run --project src/McpTime.Host --method tools/list
 dotnet format --verify-no-changes
 ```

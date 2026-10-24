@@ -2,11 +2,30 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <RootNamespace>McpTime.Host</RootNamespace>
+    <PackAsTool>true</PackAsTool>
+    <PackageType>McpServer</PackageType>
+    <PackageId>Vompa.McpTime</PackageId>
+    <ToolCommandName>mcp-time</ToolCommandName>
+    <RollForward>Major</RollForward>
+    <Description>MCP server (stdio) with two read-only tools: current time in an IANA timezone and time conversion between timezones.</Description>
+    <PackageTags>mcp;mcpserver;time;timezone;ai</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <Authors>vompa</Authors>
+    <RepositoryUrl>https://github.com/vompa/mcp-time-net</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/vompa/mcp-time-net</PackageProjectUrl>
   </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="McpTime.Protocol.Tests" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include=".mcp/server.json" Pack="true" PackagePath="/.mcp/" />
+    <None Include="README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../McpTime.Server/McpTime.Server.csproj" />
     <ProjectReference Include="../McpTime.Core/McpTime.Core.csproj" />
     <PackageReference Include="ModelContextProtocol" />
     <PackageReference Include="Microsoft.Extensions.Hosting" />
+    <PackageReference Include="System.CommandLine" />
   </ItemGroup>
 </Project>

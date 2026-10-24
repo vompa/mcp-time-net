@@ -26,3 +26,13 @@ jobs:
       - run: dotnet build --no-restore -warnaserror
       - run: dotnet format --verify-no-changes --no-restore
       - run: dotnet test --no-build
+      - name: Smoke test tool package
+        shell: bash
+        run: |
+          dotnet pack src/McpTime.Host -c Release -o artifacts/package
+          help_output=$(dotnet dnx Vompa.McpTime --source artifacts/package --yes -- --help)
+          echo "$help_output" | grep -q -- '--local-timezone'
+          if dotnet dnx Vompa.McpTime --source artifacts/package --yes -- --local-timezone Not/AZone; then
+            echo "::error::invalid timezone was accepted"
+            exit 1
+          fi
