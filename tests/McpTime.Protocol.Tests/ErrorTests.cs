@@ -45,12 +45,10 @@ public sealed class ErrorTests
         var expected = await server.Client.CallToolAsync("get_current_time", plain, cancellationToken: server.Token);
         var actual = await server.Client.CallToolAsync("get_current_time", withUnknown, cancellationToken: server.Token);
 
-        Assert.Equal(expected.IsError, actual.IsError);
-        Assert.Equal(FirstText(expected), FirstText(actual));
+        Assert.NotEqual(true, expected.IsError);
+        Assert.NotEqual(true, actual.IsError);
+        Assert.Equal("UTC", actual.StructuredContent!.Value.GetProperty("timezone").GetString());
     }
-
-    private static string? FirstText(CallToolResult result)
-        => Assert.IsType<TextContentBlock>(result.Content[0]).Text;
 
     [Fact]
     public async Task CallWithoutArgumentsDoesNotCrashTheServerAsync()

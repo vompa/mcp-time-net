@@ -1,12 +1,23 @@
+using System.Text.Json;
 using ModelContextProtocol.Protocol;
 
 namespace McpTime.Server;
 
 internal static class ToolResults
 {
-    public static CallToolResult NotImplemented(string toolName) => new()
+    public static CallToolResult Success(JsonElement structured) => new()
+    {
+        IsError = false,
+        StructuredContent = structured,
+        Content = [new TextContentBlock { Text = structured.GetRawText() }],
+    };
+
+    public static CallToolResult Error(string message) => new()
     {
         IsError = true,
-        Content = [new TextContentBlock { Text = $"Tool '{toolName}' is not implemented yet." }],
+        Content = [new TextContentBlock { Text = message }],
     };
+
+    public static CallToolResult NotImplemented(string toolName)
+        => Error($"Tool '{toolName}' is not implemented yet.");
 }

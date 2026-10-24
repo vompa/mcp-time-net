@@ -211,7 +211,7 @@ Quelle: Quellcode `modelcontextprotocol/csharp-sdk`, `main` @ 8b00f20 (23.10.202
 - Release Notes 2.3.0 im Wortlaut (GitHub-API in dieser Sitzung gesperrt; Verhalten stattdessen aus Quellcode `main` mit `VersionPrefix 2.3.0` abgeleitet – Tag-Stand nicht verglichen).
 - Exaktes JSON-Schema, das `AIJsonUtilities.CreateJsonSchema` für einen Record mit nullable Properties/`[Description]` erzeugt (Vergleich zum pydantic-`outputSchema` des Originals) – empirisch mit SDK prüfen.
 - Verhalten bei fehlenden/falsch typisierten Argumenten (Binding-Fehler: `isError` vs. -32602) im SDK 2.3. – durch eigene `McpServerTool`-Klassen gegenstandslos: die Tools erhalten die Argumente roh und prüfen selbst (D10).
-- NodaTime: Case-Sensitivity von `Tzdb.GetZoneOrNull` und ob `Tzdb.Ids` Aliase enthält; API der `TimeProvider`-Extensions.
+- ~~NodaTime: Case-Sensitivity von `Tzdb.GetZoneOrNull` und ob `Tzdb.Ids` Aliase enthält; API der `TimeProvider`-Extensions.~~ Geklärt, siehe Slice-02-Befunde.
 - Empirischer Test der `TimeZoneInfo`-Randfälle (Lord Howe, Kathmandu, `europe/warsaw`, `US/Eastern`) auf Linux/Windows – keine .NET-Installation in der Recherche-Umgebung.
 - `global.json`-Schlüssel für MTP gegen global.json-Referenz verifizieren (geklärt, siehe Scaffold-Befunde / D14); xUnit-v3- vs. MSTest- vs. TUnit-Versionen; Verify-Lizenz/Sponsoring-Status (geklärt, siehe Scaffold-Befunde / D14).
 - Template-Output `dotnet new mcpserver` (ToolCommandName, server.json-Packing, AOT-Option); .NET-10-chiseled-Tag-Namen (`10.0-noble-chiseled-extra`) auf MCR verifizieren.
@@ -241,6 +241,15 @@ Quelle: Quellcode `modelcontextprotocol/csharp-sdk`, `main` @ 8b00f20 (23.10.202
 - In 2026-07-28 weist `ValidateRequestMethodBoundary` `ping` mit -32601 ab, `initialize` auf einer modernen Sitzung ebenso.
 - Roh-Requests lassen sich im Test über `McpSession.SendRequestAsync(JsonRpcRequest)` senden.
 - stdin-EOF beendet den stdio-Transport sofort: Werden Requests gesendet und stdin direkt danach geschlossen, laufen die Handler noch (stderr zeigt `"get_current_time" completed`), aber auf stdout kommt keine Antwort mehr, Exit 0. Ein `echo … | dotnet run`-Test zeigt deshalb nichts; Roh-Tests müssen die Antwort abwarten, bevor sie stdin schließen (so macht es `RawStdioServer`).
+
+## Slice-02-Befunde (NodaTime 3.3.6, tzdb 2026e, Probe)
+
+- `DateTimeZoneProviders.Tzdb.Ids` enthält 597 IDs inklusive Aliasen (`US/Eastern`, `GMT`, `Etc/UTC`, `Etc/GMT+5`, `UTC`); `Contains` vergleicht ordinal.
+- `europe/warsaw`, `../etc/passwd`, `/etc/localtime` und die leere Zeichenfolge sind nicht enthalten. `GetZoneOrNull` ist gleich streng.
+- Australia/Lord_Howe hat am 2024-01-01T12:00Z Savings +00:30 (`IsDaylightSavingTime()` true).
+- Europe/Dublin hat in der tzdb negative Sommerzeit: 2024-01-01T12:00Z Savings −01:00 (`is_dst` true), 2024-07-01T12:00Z Savings 0 (`false`).
+- Muster `uuuu'-'MM'-'dd'T'HH':'mm':'sso<+HH:mm>` gibt für UTC `+00:00` aus (nicht `Z`).
+- `NodaTime.Extensions.TimeProviderExtensions` existiert; genutzt wird stattdessen `Instant.FromDateTimeOffset(timeProvider.GetUtcNow())`.
 
 ## Quellen
 
