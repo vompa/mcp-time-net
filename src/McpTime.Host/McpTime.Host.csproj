@@ -11,6 +11,7 @@
     <PackageTags>mcp;mcpserver;time;timezone;ai</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <Authors>vompa</Authors>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/vompa/mcp-time-net</RepositoryUrl>
     <PackageProjectUrl>https://github.com/vompa/mcp-time-net</PackageProjectUrl>
   </PropertyGroup>
