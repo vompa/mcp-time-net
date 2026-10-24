@@ -15,6 +15,18 @@ Requires the .NET 10 SDK.
 dotnet dnx Vompa.McpTime --yes
 ```
 
+The server then waits for JSON-RPC messages from an MCP client on stdin; it is not an interactive prompt. Text typed into the console (for example `today`) is not a valid message: the server logs a parse error with a stack trace to stderr and keeps running. Stop it with Ctrl+C. Logs always go to stderr, stdout carries only protocol messages.
+
+To try the tools by hand, use the [MCP Inspector](https://github.com/modelcontextprotocol/inspector) (requires Node.js):
+
+```bash
+# command line: call one tool and print the result
+npx -y @modelcontextprotocol/inspector --cli dotnet dnx Vompa.McpTime --yes --method tools/call --tool-name get_current_time --tool-arg timezone=Europe/Vienna
+
+# browser UI: list the tools and call them interactively
+npx -y @modelcontextprotocol/inspector dotnet dnx Vompa.McpTime --yes
+```
+
 ## Options
 
 | Option | Description |
